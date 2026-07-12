@@ -1,0 +1,59 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: storeadvisor
+      POSTGRES_PASSWORD: localdev
+      POSTGRES_DB: storeadvisor
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U storeadvisor"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Uncomment as each service gets built.
+  #
+  # api:
+  #   build: ./backend
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     DATABASE_URL: postgres://storeadvisor:localdev@postgres:5432/storeadvisor
+  #     REDIS_URL: redis://redis:6379
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #
+  # worker:
+  #   build: ./backend
+  #   command: pnpm start:worker
+  #   environment:
+  #     DATABASE_URL: postgres://storeadvisor:localdev@postgres:5432/storeadvisor
+  #     REDIS_URL: redis://redis:6379
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #
+  # ai:
+  #   build: ./ai
+  #   ports:
+  #     - "8000:8000"
+  #   environment:
+  #     DATABASE_URL: postgres://storeadvisor:localdev@postgres:5432/storeadvisor
+
+volumes:
+  pgdata:

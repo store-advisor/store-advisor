@@ -1,0 +1,14 @@
+node_modules/
+dist/
+build/
+.env
+.env.local
+*.log
+__pycache__/
+*.pyc
+.venv/
+venv/
+.DS_Store
+.idea/
+.dart_tool/
+build/
