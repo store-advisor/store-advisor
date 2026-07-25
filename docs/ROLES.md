@@ -44,8 +44,9 @@ Builds against the frozen contract and fixtures, so he is never blocked on the b
 campaign pauses. Builds against fixtures first.
 
 **Design (Ahmed Osama).** Not decoration. The doctors grade what they can see, so the demo is
-the grade. Owns the findings list and detail screens that both web and mobile consume, and the
-flow of the final demo.
+the grade. Owns the findings list and detail screens that both web and mobile consume, the
+shared design system, and the flow of the final demo. His screens come before any UI work, so
+his ticket lands early in the sprint, not late.
 
 ## The two interface rules
 
