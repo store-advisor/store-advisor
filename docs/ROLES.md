@@ -7,7 +7,7 @@ reviewed. Owning something does not mean working alone, it means the buck stops 
 
 | Person | Role | Owns | Stack |
 |---|---|---|---|
-| **Faraj** | Tech lead + frontend | Architecture, integration, infra, CI/CD, the web dashboard | Docker, GitHub Actions, GCP, Next.js |
+| **Faraj** | Tech lead + frontend + cloud | Architecture, integration, infra, CI/CD, cloud + deployment, the web dashboard | Docker, GitHub Actions, GCP Cloud Run, Next.js |
 | **Bassem** | Backend | The schema and the store connector (the data layer) | NestJS, Prisma, Postgres |
 | **Abdallah** | Backend | The check engine (the core service) | NestJS, BullMQ, raw SQL |
 | **Khaled** | AI | The AI service: LLM explanation, pricing, ranking | Python, FastAPI, Anthropic SDK |
@@ -18,9 +18,10 @@ reviewed. Owning something does not mean working alone, it means the buck stops 
 
 ## What each role means
 
-**Tech lead + frontend (Faraj).** Owns the repo, CI, and deploys. Keeps the services fitting
-together. Unblocks people. Runs sprint planning. Makes the final call when a decision is stuck.
-Also builds the web dashboard against the frozen contract and fixtures.
+**Tech lead + frontend + cloud (Faraj).** Owns the repo, CI, and the cloud: all deployment on
+GCP Cloud Run, environments, and secrets. Keeps the services fitting together. Unblocks people.
+Runs sprint planning. Makes the final call when a decision is stuck. Also builds the web
+dashboard against the frozen contract and fixtures.
 
 **Schema + store connector (Bassem).** Owns the normalized schema, which everything else reads,
 so it comes first. Builds the store connector and, with it, defines the connector interface
