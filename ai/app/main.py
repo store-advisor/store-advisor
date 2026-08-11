@@ -1,23 +1,22 @@
 """
-Store Advisor - AI service.
-
-Its one job, per HANDBOOK.md section 5: take a finding's evidence and return a
-plain-language explanation, a confidence, and a severity. It does not find
-problems and it does not compute numbers. Both of those belong to the check
-engine, and the separation is what lets a merchant trust the result.
+Store Advisor — FastAPI application entry point.
 """
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.explain import router as explain_router
+from app.api.cleaning import router as cleaning_router
 
 app = FastAPI(
-    title="Store Advisor - AI service",
-    description="Explains findings. Never invents a number.",
+    title="Store Advisor — Data Cleaning API",
+    description=(
+        "Upload tabular data and clean it using Basic or Advanced pipelines. "
+        "Profile datasets before cleaning to understand their structure."
+    ),
     version="1.0.0",
 )
 
+# ── CORS (allow the frontend to call the API) ───────────────────────────────
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -26,9 +25,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(explain_router)
+# ── routers ─────────────────────────────────────────────────────────────────
+app.include_router(cleaning_router)
 
 
-@app.get("/health")
-def health() -> dict[str, str]:
-    return {"status": "ok"}
+@app.get("/")
+async def root():
+    return {
+        "service": "Store Advisor — Data Cleaning API",
+        "version": "1.0.0",
+        "endpoints": [
+            "/api/profile",
+            "/api/clean",
+            "/api/clean/download",
+            "/docs",
+        ],
+    }
