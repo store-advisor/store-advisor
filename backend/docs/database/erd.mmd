@@ -1,0 +1,107 @@
+erDiagram
+    MERCHANT ||--o{ PRODUCT : owns
+    MERCHANT ||--o{ CAMPAIGN : owns
+    MERCHANT ||--o{ AD_SPEND : owns
+    MERCHANT ||--o{ ORDER : owns
+    MERCHANT ||--o{ EVENT : owns
+    MERCHANT ||--o{ FINDING : owns
+    MERCHANT ||--o{ ACTION : owns
+
+    PRODUCT ||--o{ ORDER : "sold in"
+    PRODUCT ||--o{ CAMPAIGN_PRODUCT : "targeted by"
+    CAMPAIGN ||--o{ CAMPAIGN_PRODUCT : targets
+    CAMPAIGN ||--o{ AD_SPEND : incurs
+
+    FINDING ||--o{ ACTION : "remediated by"
+
+    MERCHANT {
+        string id PK
+        string name
+        datetime createdAt
+    }
+
+    PRODUCT {
+        string id PK
+        string merchantId FK
+        string source
+        string externalId
+        string sku
+        string title
+        decimal price
+        int inventoryQty
+        string status
+        datetime updatedAt
+    }
+
+    CAMPAIGN {
+        string id PK
+        string merchantId FK
+        string source
+        string externalId
+        string name
+        string status
+        decimal dailyBudget
+        datetime updatedAt
+    }
+
+    CAMPAIGN_PRODUCT {
+        string campaignId FK
+        string productId FK
+        datetime createdAt
+    }
+
+    AD_SPEND {
+        string id PK
+        string merchantId FK
+        string campaignId FK
+        date date
+        decimal spend
+        int clicks
+        int conversions
+    }
+
+    ORDER {
+        string id PK
+        string merchantId FK
+        string productId FK
+        string source
+        string externalId
+        int qty
+        decimal revenue
+        datetime createdAt
+    }
+
+    EVENT {
+        string id PK
+        string merchantId FK
+        string source
+        string entityType
+        string entityId "polymorphic, not FK-enforced"
+        string eventType
+        json payload
+        datetime occurredAt
+    }
+
+    FINDING {
+        string id PK
+        string merchantId FK
+        string checkId "identifies check module, not FK"
+        string status
+        json evidence
+        decimal estimatedCost
+        string llmExplanation "nullable"
+        float llmConfidence "nullable"
+        datetime createdAt
+    }
+
+    ACTION {
+        string id PK
+        string merchantId FK
+        string findingId FK
+        string actionType
+        string status
+        string idempotencyKey UK
+        json request
+        json response
+        datetime executedAt "nullable"
+    }

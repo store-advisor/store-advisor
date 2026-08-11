@@ -1,0 +1,69 @@
+flowchart TD
+    subgraph Store["Store Source (Shopify / Salla / Mock)"]
+        S1[Product Data]
+        S2[Inventory Data]
+        S3[Order Data]
+    end
+
+    subgraph Ads["Ad Platform Source (Meta / Google Ads / Mock)"]
+        A1[Campaign Data]
+        A2[Ad Spend Data]
+    end
+
+    SC[Store Connector]
+    AC[Ads Connector]
+
+    S1 --> SC
+    S2 --> SC
+    S3 --> SC
+    A1 --> AC
+    A2 --> AC
+
+    subgraph Canonical["Canonical Layer (PostgreSQL)"]
+        P[(Products)]
+        C[(Campaigns)]
+        CP[(CampaignProduct)]
+        AS[(AdSpend)]
+        O[(Orders)]
+        EV[(Events - append only)]
+    end
+
+    SC -->|writes current state| P
+    SC -->|writes current state| O
+    SC -->|writes state-change history| EV
+    AC -->|writes current state| C
+    AC -->|writes current state| AS
+    AC -->|writes state-change history| EV
+    SC -.->|targeting relationships| CP
+    AC -.->|targeting relationships| CP
+
+    CE[Check Engine]
+    P --> CE
+    C --> CE
+    CP --> CE
+    AS --> CE
+    O --> CE
+    EV -->|"e.g. stock_out timestamp"| CE
+
+    F[(Findings)]
+    CE -->|"evidence + estimatedCost\n(deterministic, never LLM-computed)"| F
+
+    AI[AI Service]
+    F -->|evidence only| AI
+    AI -->|explanation + confidence\n written back| F
+
+    API[API]
+    F --> API
+    API --> Web[Web Dashboard]
+    API --> Mobile[Mobile App / Push Notification]
+
+    Merchant((Merchant))
+    Mobile --> Merchant
+    Web --> Merchant
+    Merchant -->|approves action| API
+
+    ACT[(Actions)]
+    API -->|"idempotencyKey enforced"| ACT
+    ACT -->|executes| Ads
+
+    CE -.->|"next scan verifies fix"| F
