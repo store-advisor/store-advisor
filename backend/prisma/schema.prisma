@@ -3,10 +3,302 @@
 
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
+// ============================================================================
+// Store Advisor — Database Schema (v1)
+// Ticket: SCRUM-7 — Database Schema and Migrations
+// Owner: Bassem
+//
+// See /docs/database/erd.md and /docs/database/decisions.md for the full
+// architectural reasoning behind this schema.
+// ============================================================================
+
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+// ----------------------------------------------------------------------------
+// ENUMS
+//
+// Only used for internal, finite, code-controlled states. Deliberately NOT
+// used for `source` or externally-sourced `status` fields — see
+// docs/database/schema-notes.md for why enum-ifying those would silently
+// violate the connector-interface rule (Rule 1).
+// ----------------------------------------------------------------------------
+
+enum FindingStatus {
+  OPEN
+  FIXED
+  DISMISSED
+}
+
+enum ActionStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
+// ----------------------------------------------------------------------------
+// MERCHANT
+//
+// The tenant root. Every other table's merchantId is a real, DB-enforced
+// foreign key into this table rather than an unvalidated string — see
+// decisions.md #1.
+// ----------------------------------------------------------------------------
+
+model Merchant {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  products  Product[]
+  campaigns Campaign[]
+  adSpend   AdSpend[]
+  orders    Order[]
+  events    Event[]
+  findings  Finding[]
+  actions   Action[]
+
+  @@map("merchants")
+}
+
+// ----------------------------------------------------------------------------
+// PRODUCT
+//
+// Current, normalized catalog/inventory state. `inventoryQty` is the field
+// the first check (ad_spend_on_oos) reads directly. Uniquely identified
+// across sources by (merchantId, source, externalId) — never by externalId
+// alone, since external IDs are not guaranteed unique across platforms.
+// ----------------------------------------------------------------------------
+
+model Product {
+  id           String   @id @default(cuid())
+  merchantId   String   @map("merchant_id")
+  source       String
+  externalId   String   @map("external_id")
+  sku          String?
+  title        String
+  price        Decimal  @db.Decimal(10, 2)
+  inventoryQty Int      @map("inventory_qty")
+  status       String
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  merchant         Merchant          @relation(fields: [merchantId], references: [id])
+  orders           Order[]
+  campaignProducts CampaignProduct[]
+
+  // Composite unique: the connector's upsert target on every sync — prevents
+  // duplicate rows for the same external product across repeated ingests.
+  @@unique([merchantId, source, externalId])
+  // Every real query filters by tenant first; this also directly supports
+  // "find zero-stock products for merchant X" style check-engine queries.
+  @@index([merchantId, inventoryQty])
+  @@map("products")
+}
+
+// ----------------------------------------------------------------------------
+// CAMPAIGN
+//
+// Current, normalized advertising state. Same source/externalId pattern as
+// Product, for the same reason: new ad platforms require zero schema change.
+// ----------------------------------------------------------------------------
+
+model Campaign {
+  id          String   @id @default(cuid())
+  merchantId  String   @map("merchant_id")
+  source      String
+  externalId  String   @map("external_id")
+  name        String
+  status      String
+  dailyBudget Decimal  @map("daily_budget") @db.Decimal(10, 2)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  merchant         Merchant          @relation(fields: [merchantId], references: [id])
+  adSpend          AdSpend[]
+  campaignProducts CampaignProduct[]
+
+  @@unique([merchantId, source, externalId])
+  // Supports "find active campaigns for merchant X" — the second half of
+  // the first check's core query.
+  @@index([merchantId, status])
+  @@map("campaigns")
+}
+
+// ----------------------------------------------------------------------------
+// CAMPAIGN_PRODUCT (join table)
+//
+// Resolves the one true many-to-many relationship in this schema. This is a
+// DELIBERATE DEVIATION from the handbook's literal target_product_ids[]
+// array field — see decisions.md #2. Requires sign-off from Abdallah/Faraj
+// per handbook section 31 before considered final.
+//
+// Explicit join model (not Prisma's implicit m:n shorthand) so we can attach
+// metadata to the relationship itself later (e.g. bid amount, primary-target
+// flag) without a structural change.
+// ----------------------------------------------------------------------------
+
+model CampaignProduct {
+  campaignId String   @map("campaign_id")
+  productId  String   @map("product_id")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  campaign Campaign @relation(fields: [campaignId], references: [id])
+  product  Product  @relation(fields: [productId], references: [id])
+
+  // Composite primary key: a campaign targeting the same product twice is a
+  // duplicate fact, not a new one — enforced at the DB level, not just by
+  // application logic.
+  @@id([campaignId, productId])
+  // Supports the reverse lookup: "which campaigns target this product" —
+  // needed when Product is the entry point (e.g. a product-centric check).
+  @@index([productId])
+  @@map("campaign_products")
+}
+
+// ----------------------------------------------------------------------------
+// AD_SPEND
+//
+// Daily time-series fact, deliberately separate from Campaign (current-state
+// only). One row per campaign per day. `date` uses @db.Date (not full
+// DateTime) because ad platforms report by calendar day, not by instant —
+// distinct from Event.occurredAt's precise timestamp.
+// ----------------------------------------------------------------------------
+
+model AdSpend {
+  id          String   @id @default(cuid())
+  merchantId  String   @map("merchant_id")
+  campaignId  String   @map("campaign_id")
+  date        DateTime @db.Date
+  spend       Decimal  @db.Decimal(10, 2)
+  clicks      Int      @default(0)
+  conversions Int      @default(0)
+
+  merchant Merchant @relation(fields: [merchantId], references: [id])
+  campaign Campaign @relation(fields: [campaignId], references: [id])
+
+  // Prevents double-ingesting the same day's spend on a connector re-sync —
+  // also serves as the connector's upsert target.
+  @@unique([merchantId, campaignId, date])
+  // This is the literal shape of the first check's "spend since stockout"
+  // query: filter by tenant + campaign, ordered/ranged by date.
+  @@index([merchantId, campaignId, date])
+  @@map("ad_spend")
+}
+
+// ----------------------------------------------------------------------------
+// ORDER
+//
+// Normalized sales facts. Proves whether a product actually sold — used as
+// finding evidence (the "0 sales" in the demo script) and for future checks
+// (e.g. dead stock).
+// ----------------------------------------------------------------------------
+
+model Order {
+  id         String   @id @default(cuid())
+  merchantId String   @map("merchant_id")
+  source     String
+  externalId String   @map("external_id")
+  productId  String   @map("product_id")
+  qty        Int
+  revenue    Decimal  @db.Decimal(10, 2)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  merchant Merchant @relation(fields: [merchantId], references: [id])
+  product  Product  @relation(fields: [productId], references: [id])
+
+  @@unique([merchantId, source, externalId])
+  // Supports "orders for this product since X" — the query shape future
+  // checks (dead stock, sales-drop) will need.
+  @@index([merchantId, productId, createdAt])
+  @@map("orders")
+}
+
+// ----------------------------------------------------------------------------
+// EVENT
+//
+// The most structurally important table in the schema. Append-only —
+// NEVER updated or deleted by application code. entityId is deliberately
+// NOT a strict foreign key (polymorphic — its meaning depends on
+// entityType); see decisions.md #3 for the trade-off this accepts.
+// ----------------------------------------------------------------------------
+
+model Event {
+  id         String   @id @default(cuid())
+  merchantId String   @map("merchant_id")
+  source     String
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id")
+  eventType  String   @map("event_type")
+  payload    Json
+  occurredAt DateTime @map("occurred_at") @db.Timestamptz(3)
+
+  merchant Merchant @relation(fields: [merchantId], references: [id])
+
+  // This is the literal query shape of the first check: "events for this
+  // entity, for this merchant, ordered by when they happened" — used to
+  // find the precise stock_out timestamp.
+  @@index([merchantId, entityType, entityId, occurredAt])
+  @@map("events")
+}
+
+// ----------------------------------------------------------------------------
+// FINDING
+//
+// The output of a deterministic check. estimatedCost is a stored column —
+// the Golden Rule made physical (decisions.md #4). checkId is a string
+// identifier for a check MODULE, not a foreign key — checks are code, not
+// database rows (Rule 2).
+// ----------------------------------------------------------------------------
+
+model Finding {
+  id             String        @id @default(cuid())
+  merchantId     String        @map("merchant_id")
+  checkId        String        @map("check_id")
+  status         FindingStatus @default(OPEN)
+  evidence       Json
+  estimatedCost  Decimal       @map("estimated_cost") @db.Decimal(10, 2)
+  llmExplanation String?       @map("llm_explanation")
+  llmConfidence  Float?        @map("llm_confidence")
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  merchant Merchant @relation(fields: [merchantId], references: [id])
+  actions  Action[]
+
+  // Supports "open findings for merchant X" — the API's primary read path
+  // for the dashboard/mobile findings list.
+  @@index([merchantId, status])
+  @@map("findings")
+}
+
+// ----------------------------------------------------------------------------
+// ACTION
+//
+// A merchant-approved remediation attempt and its real-world result.
+// idempotencyKey is a DB-enforced unique constraint — the actual guarantee
+// against a retried "pause campaign" firing twice (decisions.md #5).
+// merchantId is duplicated here (also reachable via Finding) per
+// decisions.md #6 — direct tenant filtering without depending on a join.
+// ----------------------------------------------------------------------------
+
+model Action {
+  id             String       @id @default(cuid())
+  merchantId     String       @map("merchant_id")
+  findingId      String       @map("finding_id")
+  actionType     String       @map("action_type")
+  status         ActionStatus @default(PENDING)
+  idempotencyKey String       @unique @map("idempotency_key")
+  request        Json
+  response       Json?
+  executedAt     DateTime?    @map("executed_at") @db.Timestamptz(3)
+
+  merchant Merchant @relation(fields: [merchantId], references: [id])
+  finding  Finding  @relation(fields: [findingId], references: [id])
+
+  // Supports "previous action attempts for this finding" — needed for the
+  // approve → fails → retry sequence the handbook describes.
+  @@index([findingId])
+  @@map("actions")
 }
