@@ -1,6 +1,9 @@
-anthropic>=1.2.0
-fastapi
-uvicorn[standard]
-pydantic
-pytest
-httpx2
+python
+
+pandas
+
+numpy
+
+matplotlib
+
+seaborn
