@@ -98,7 +98,6 @@ model Product {
   @@index([merchantId, inventoryQty])
   @@map("products")
 }
-
 // ----------------------------------------------------------------------------
 // CAMPAIGN
 //
@@ -304,3 +303,5 @@ model Action {
   @@index([findingId])
   @@map("actions")
 }
+
+// test commit
