@@ -224,3 +224,47 @@ lockfile equivalent. Confirmed with Faraj: npm is correct.
 **Note:** the `web` job in the same workflow still references pnpm as of
 this writing — out of scope for this ticket (owned by web, not backend),
 but flagged to Faraj since the same inconsistency likely applies there.
+
+---
+
+## 14. Campaign budget modeling: nullable dailyBudget + budgetType
+
+**Decision:** `dailyBudget` is nullable; `budgetType` ("daily" | "lifetime")
+added as a plain String, not an enum (consistent with decisions.md's
+existing rule against enum-ifying externally-sourced values).
+
+**Why:** Meta and Google Ads both support lifetime budgets as an
+alternative to daily budgets — a required `dailyBudget` would force the
+Ads Connector to fabricate a value for lifetime-budget campaigns.
+
+**Deliberately deferred:** a `lifetimeBudget` field and a CHECK constraint
+tying `budgetType` to which budget field is populated. Adding both now
+would be modeling a case with no real usage yet — deferred until a real
+connector actually needs it, per the handbook's scope-creep guidance.
+
+---
+
+## 15. CHECK constraints added for non-negative money/quantity fields
+
+**Decision:** hand-written SQL migration adds CHECK constraints on
+spend, price, inventory, quantity, revenue, and estimated cost fields.
+
+**Why:** Prisma's schema DSL has no native CHECK syntax; these are added
+via a `--create-only` migration with manually written SQL. Given this
+project's core premise is giving merchants a trustworthy dollar figure,
+silently allowing negative financial values felt worth closing rather
+than leaving as a known gap.
+
+---
+
+## 16. Known, deliberate gap: no merchant offboarding / cascading delete path
+
+**Status:** open, not yet addressed.
+
+All foreign keys default to `ON DELETE RESTRICT` (Prisma's default when
+no `onDelete` is specified) — meaning a Merchant (or any row with
+children) currently cannot be deleted while related rows exist anywhere.
+This is a safe default against accidental data loss, but means "delete
+my account" has no defined path yet. Likely future answer is a soft-delete
+pattern (`deletedAt` column) rather than cascading hard deletes — flagged
+here rather than solved now, since no feature currently requires it.

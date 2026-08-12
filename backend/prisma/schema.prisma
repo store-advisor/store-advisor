@@ -113,7 +113,8 @@ model Campaign {
   externalId  String   @map("external_id")
   name        String
   status      String
-  dailyBudget Decimal  @map("daily_budget") @db.Decimal(10, 2)
+  dailyBudget Decimal?  @map("daily_budget") @db.Decimal(10, 2)
+  budgetType  String   @default("daily") @map("budget_type") // "daily" | "lifetime"
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   merchant         Merchant          @relation(fields: [merchantId], references: [id])
@@ -299,6 +300,7 @@ model Action {
 
   // Supports "previous action attempts for this finding" — needed for the
   // approve → fails → retry sequence the handbook describes.
+  @@index([merchantId, status])
   @@index([findingId])
   @@map("actions")
 }
