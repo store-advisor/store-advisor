@@ -303,5 +303,3 @@ model Action {
   @@index([findingId])
   @@map("actions")
 }
-
-// test commit
