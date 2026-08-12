@@ -173,6 +173,7 @@ sequence long-term is an open question for whoever builds `api`.
 `COPY . .` + `RUN npm ci` image.
 
 **Why:**
+
 - `deps` isolates dependency installation so Docker's layer cache only
   invalidates when `package.json`/`package-lock.json` actually change,
   not on every source edit.
@@ -202,7 +203,7 @@ would not work correctly.
 directly on a developer's machine (`npm run start:dev`) against the
 Dockerized Postgres via its exposed port. The root `.env.example` uses
 `postgres` — the Docker Compose service name — for containers (like
-`migrate`) running *inside* the Compose network, where `localhost`
+`migrate`) running _inside_ the Compose network, where `localhost`
 would incorrectly refer to the container itself, not the Postgres
 container.
 
@@ -268,3 +269,25 @@ This is a safe default against accidental data loss, but means "delete
 my account" has no defined path yet. Likely future answer is a soft-delete
 pattern (`deletedAt` column) rather than cascading hard deletes — flagged
 here rather than solved now, since no feature currently requires it.
+
+---
+
+## 17. PrismaClient requires an explicit driver adapter (Prisma 7 breaking change)
+
+**Finding:** `new PrismaClient()` with no arguments throws
+`PrismaClientInitializationError` in Prisma 7 — the built-in query engine
+that made bare instantiation work in Prisma 6 and earlier was removed.
+Every `PrismaClient` instantiation anywhere in this codebase — tests, and
+eventually the real NestJS `PrismaService` — must explicitly construct a
+driver adapter and pass it:
+
+```ts
+import { PrismaPg } from '@prisma/adapter-pg';
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const prisma = new PrismaClient({ adapter });
+```
+
+Requires `@prisma/adapter-pg` and `pg` as dependencies (`@types/pg` as a
+dev dependency). Flagging this explicitly so whoever implements the real
+`PrismaService` (injectable NestJS provider wrapping PrismaClient) doesn't
+independently rediscover this — it should use this exact pattern.
