@@ -291,3 +291,11 @@ Requires `@prisma/adapter-pg` and `pg` as dependencies (`@types/pg` as a
 dev dependency). Flagging this explicitly so whoever implements the real
 `PrismaService` (injectable NestJS provider wrapping PrismaClient) doesn't
 independently rediscover this — it should use this exact pattern.
+
+---
+
+## 18. CampaignProduct has no direct merchantId
+
+Deliberate: not one of the ticket's named tables, always reachable via
+Campaign or Product, both of which are merchant-scoped. Acceptable
+exception to "merchant_id on every table," not an oversight.
