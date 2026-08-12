@@ -2,15 +2,15 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: storeadvisor
-      POSTGRES_PASSWORD: localdev
-      POSTGRES_DB: storeadvisor
+      POSTGRES_USER: ${POSTGRES_USER:-storeadvisor}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-localdev}
+      POSTGRES_DB: ${POSTGRES_DB:-storeadvisor}
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U storeadvisor"]
+      test: ['CMD-SHELL', 'pg_isready -U storeadvisor']
       interval: 5s
       timeout: 5s
       retries: 5
@@ -18,42 +18,67 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - '6379:6379'
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
       timeout: 5s
       retries: 5
+    # No volume: Redis here is only a BullMQ queue backend, not a data
+    # store. Losing queued jobs on a dev restart is acceptable — and
+    # avoids replaying stale jobs after every restart.
+
+  migrate:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      # Targets the `build` stage specifically — it has the Prisma CLI
+      # (a devDependency), which the slim `runtime` stage deliberately
+      # excludes.
+      target: build
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://storeadvisor:localdev@postgres:5432/storeadvisor}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: npx prisma migrate deploy
+    # One-shot: applies pending migrations, then exits. Not a long-running
+    # service — run with `docker compose run --rm migrate`, or as a
+    # dependency gate for api/worker below.
 
   # Uncomment as each service gets built.
   #
   # api:
   #   build: ./backend
   #   ports:
-  #     - "3000:3000"
+  #     - '3000:3000'
   #   environment:
-  #     DATABASE_URL: postgres://storeadvisor:localdev@postgres:5432/storeadvisor
+  #     DATABASE_URL: ${DATABASE_URL:-postgresql://storeadvisor:localdev@postgres:5432/storeadvisor}
   #     REDIS_URL: redis://redis:6379
   #   depends_on:
   #     postgres:
   #       condition: service_healthy
+  #     migrate:
+  #       condition: service_completed_successfully
   #
   # worker:
   #   build: ./backend
-  #   command: pnpm start:worker
+  #   command: npm run start:worker
   #   environment:
-  #     DATABASE_URL: postgres://storeadvisor:localdev@postgres:5432/storeadvisor
+  #     DATABASE_URL: ${DATABASE_URL:-postgresql://storeadvisor:localdev@postgres:5432/storeadvisor}
   #     REDIS_URL: redis://redis:6379
   #   depends_on:
   #     postgres:
   #       condition: service_healthy
+  #     migrate:
+  #       condition: service_completed_successfully
   #
   # ai:
   #   build: ./ai
   #   ports:
   #     - "8000:8000"
   #   environment:
-  #     DATABASE_URL: postgres://storeadvisor:localdev@postgres:5432/storeadvisor
+  #     DATABASE_URL: ${DATABASE_URL:-postgresql://storeadvisor:localdev@postgres:5432/storeadvisor}
 
 volumes:
   pgdata:

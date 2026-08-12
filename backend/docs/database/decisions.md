@@ -126,3 +126,101 @@ lowercased by Postgres, forcing every raw-SQL query to use quoted
 identifiers (`"merchantId"`) — a persistent, easy-to-forget footgun. Fixing
 this once at the schema level avoids it entirely for every future raw
 query.
+
+---
+
+## 9. Timestamp columns fixed to `Timestamptz`, not plain `Timestamp`
+
+**Decision:** every `DateTime` field explicitly annotated with `@db.Timestamptz(3)`
+(except `AdSpend.date`, which stays `@db.Date` — daily granularity, not an instant).
+
+**Why:** the initial migration generated plain `timestamp(3) without time zone`
+columns — Prisma's default mapping, not what we intended. This silently
+reintroduces the exact timezone ambiguity handbook section 39 requires the
+canonical layer to eliminate: a naive timestamp doesn't say whether it's
+UTC, server-local, or client-local. Caught before any real data existed,
+fixed via a second forward migration (`fix_timestamps_to_timestamptz`)
+rather than hand-editing the database — this also served as our concrete
+proof that "rollback works" (SCRUM-7 acceptance criteria) means fixing
+forward with a new reviewed migration, not rewinding in place.
+
+---
+
+## 10. Migrations run via a dedicated one-shot `migrate` service, not baked into `api`
+
+**Decision:** `docker-compose.yml` includes a `migrate` service
+(`prisma migrate deploy`, run via `docker compose run --rm migrate`)
+rather than embedding migration logic directly in the (still
+not-yet-built) `api` service's startup command.
+
+**Why:** the `api` service doesn't exist yet — Haggag hasn't built it.
+A standalone `migrate` service lets this ticket's acceptance criterion
+("docker compose runs migrations automatically") be satisfied and
+verified today, independent of API work landing.
+
+**Open follow-up, flagged to Faraj/Haggag:** once `api` is real, it
+should depend on `migrate: condition: service_completed_successfully`
+(already wired into the commented-out `api`/`worker` blocks) rather than
+running migrations twice or independently. Whether `migrate` stays a
+permanent separate service or gets folded into `api`'s own startup
+sequence long-term is an open question for whoever builds `api`.
+
+---
+
+## 11. Dockerfile is multi-stage (deps / build / runtime)
+
+**Decision:** `backend/Dockerfile` uses three stages rather than one flat
+`COPY . .` + `RUN npm ci` image.
+
+**Why:**
+- `deps` isolates dependency installation so Docker's layer cache only
+  invalidates when `package.json`/`package-lock.json` actually change,
+  not on every source edit.
+- `build` has devDependencies (Prisma CLI, TypeScript, Nest CLI) — this
+  is the stage the `migrate` service targets specifically
+  (`target: build`), since `prisma migrate deploy` needs the Prisma CLI,
+  which the lean runtime image deliberately excludes.
+- `runtime` reinstalls production-only dependencies fresh, copies over
+  only compiled output and the generated Prisma client, and runs as the
+  non-root `node` user rather than root — standard container hardening,
+  not optional once this image is anything other than a throwaway.
+
+A `.dockerignore` (`node_modules`, `dist`, `.env`, `.git`, `docs`) was
+added alongside this — without it, `COPY . .` would pull the host's
+Windows-built `node_modules` into a Linux Alpine container, which
+would not work correctly.
+
+---
+
+## 12. Two separate `.env.example` files (root and `backend/`), not one
+
+**Decision:** `.env.example` exists both at the repo root and inside
+`backend/`, with different `DATABASE_URL` hostnames.
+
+**Why:** they serve genuinely different execution contexts.
+`backend/.env.example` uses `localhost` — for running NestJS/Prisma
+directly on a developer's machine (`npm run start:dev`) against the
+Dockerized Postgres via its exposed port. The root `.env.example` uses
+`postgres` — the Docker Compose service name — for containers (like
+`migrate`) running *inside* the Compose network, where `localhost`
+would incorrectly refer to the container itself, not the Postgres
+container.
+
+---
+
+## 13. Package manager confirmed as npm — CI workflow corrected accordingly
+
+**Decision:** `backend`'s CI job in `.github/workflows/ci.yml` uses
+`npm ci` / `package-lock.json`, matching the handbook and the backend's
+actual committed lockfile.
+
+**Why this needed fixing:** the CI workflow, as originally scaffolded,
+assumed pnpm project-wide (`pnpm/action-setup`, `pnpm-lock.yaml` cache
+path) — but the handbook specifies npm, and `backend/` has always had a
+`package-lock.json`, not a pnpm lockfile. Running the original workflow
+as committed would have failed immediately on `npm ci`'s missing
+lockfile equivalent. Confirmed with Faraj: npm is correct.
+
+**Note:** the `web` job in the same workflow still references pnpm as of
+this writing — out of scope for this ticket (owned by web, not backend),
+but flagged to Faraj since the same inconsistency likely applies there.
