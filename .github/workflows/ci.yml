@@ -9,7 +9,7 @@ jobs:
   backend:
     name: Backend
     runs-on: ubuntu-latest
-    if: always()
+
     services:
       postgres:
         image: postgres:16-alpine
@@ -20,7 +20,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U storeadvisor -d storeadvisor_test"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 5
@@ -34,60 +34,78 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 5
+
     defaults:
       run:
         working-directory: backend
+
+    env:
+      DATABASE_URL: postgres://storeadvisor:localdev@localhost:5432/storeadvisor_test
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: backend/package-lock.json
+
       - run: npm ci
+
       - run: npx prisma generate
+
       - run: npx prisma migrate deploy
-        env:
-          DATABASE_URL: postgres://storeadvisor:localdev@localhost:5432/storeadvisor_test
+
       - run: npm run lint
+
       - run: npm run build
+
       - run: npm test
-        env:
-          DATABASE_URL: postgres://storeadvisor:localdev@localhost:5432/storeadvisor_test
 
   ai:
     name: AI service
     runs-on: ubuntu-latest
-    if: always()
+
     defaults:
       run:
         working-directory: ai
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
           cache: pip
+
       - run: pip install -r requirements.txt
+
       - run: python -m pytest
 
   web:
     name: Web
     runs-on: ubuntu-latest
-    if: always()
+
     defaults:
       run:
         working-directory: web
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: pnpm/action-setup@v4
         with:
           version: 9
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
           cache-dependency-path: web/pnpm-lock.yaml
+
       - run: pnpm install --frozen-lockfile
+
       - run: pnpm lint
+
       - run: pnpm build
