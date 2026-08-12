@@ -6,10 +6,26 @@ on:
     branches: [main]
 
 jobs:
+  detect:
+    name: Detect changed services
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.check.outputs.backend }}
+      ai: ${{ steps.check.outputs.ai }}
+      web: ${{ steps.check.outputs.web }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: check
+        run: |
+          [ -f backend/package.json ] && echo "backend=true" >> "$GITHUB_OUTPUT" || echo "backend=false" >> "$GITHUB_OUTPUT"
+          [ -f ai/requirements.txt ] && echo "ai=true" >> "$GITHUB_OUTPUT" || echo "ai=false" >> "$GITHUB_OUTPUT"
+          [ -f web/package.json ] && echo "web=true" >> "$GITHUB_OUTPUT" || echo "web=false" >> "$GITHUB_OUTPUT"
+
   backend:
     name: Backend
+    needs: detect
     runs-on: ubuntu-latest
-    if: always() && hashFiles('backend/package.json') != ''
+    if: needs.detect.outputs.backend == 'true'
     services:
       postgres:
         image: postgres:16-alpine
@@ -57,8 +73,9 @@ jobs:
 
   ai:
     name: AI service
+    needs: detect
     runs-on: ubuntu-latest
-    if: always() && hashFiles('ai/requirements.txt') != ''
+    if: needs.detect.outputs.ai == 'true'
     defaults:
       run:
         working-directory: ai
@@ -73,8 +90,9 @@ jobs:
 
   web:
     name: Web
+    needs: detect
     runs-on: ubuntu-latest
-    if: always() && hashFiles('web/package.json') != ''
+    if: needs.detect.outputs.web == 'true'
     defaults:
       run:
         working-directory: web
