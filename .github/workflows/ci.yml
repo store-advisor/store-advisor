@@ -8,10 +8,26 @@ on:
       - 'feature/**'
 
 jobs:
+  check-files:
+    runs-on: ubuntu-latest
+    outputs:
+      backend_exists: ${{ steps.check.outputs.backend_exists }}
+      ai_exists:     ${{ steps.check.outputs.ai_exists }}
+      web_exists:    ${{ steps.check.outputs.web_exists }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: check
+        run: |
+          # Use hashFiles in shell (it's available in step expressions)
+          echo "backend_exists=${{ hashFiles('backend/package.json') != '' }}" >> $GITHUB_OUTPUT
+          echo "ai_exists=${{ hashFiles('ai/requirements.txt') != '' }}" >> $GITHUB_OUTPUT
+          echo "web_exists=${{ hashFiles('web/package.json') != '' }}" >> $GITHUB_OUTPUT
+
   backend:
     name: Backend
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('backend/package.json') != '' }}
+    needs: check-files
+    if: needs.check-files.outputs.backend_exists == 'true'
     services:
       postgres:
         image: postgres:16-alpine
@@ -26,7 +42,6 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 5
-
       redis:
         image: redis:7-alpine
         ports:
@@ -36,78 +51,60 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 5
-
     defaults:
       run:
         working-directory: backend
-
     env:
       DATABASE_URL: postgres://storeadvisor:localdev@localhost:5432/storeadvisor_test
-
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: backend/package-lock.json
-
       - run: npm ci
-
       - run: npx prisma generate
-
       - run: npx prisma migrate deploy
-
       - run: npm run lint
-
       - run: npm run build
-
       - run: npm test
 
   ai:
     name: AI service
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('ai/requirements.txt') != '' }}
+    needs: check-files
+    if: needs.check-files.outputs.ai_exists == 'true'
     defaults:
       run:
         working-directory: ai
-
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
           cache: pip
-
       - run: pip install -r requirements.txt
-
       - run: python -m pytest
 
   web:
     name: Web
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('web/package.json') != '' }}
+    needs: check-files
+    if: needs.check-files.outputs.web_exists == 'true'
     defaults:
       run:
         working-directory: web
-
     steps:
       - uses: actions/checkout@v4
-
       - uses: pnpm/action-setup@v4
         with:
           version: 9
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
           cache-dependency-path: web/pnpm-lock.yaml
-
       - run: pnpm install --frozen-lockfile
-
       - run: pnpm lint
-
       - run: pnpm build
