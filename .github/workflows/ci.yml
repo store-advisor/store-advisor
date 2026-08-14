@@ -11,7 +11,7 @@ jobs:
   backend:
     name: Backend
     runs-on: ubuntu-latest
-    if: hashFiles('backend/package.json')
+    if: ${{ hashFiles('backend/package.json') != '' }}
     services:
       postgres:
         image: postgres:16-alpine
@@ -68,7 +68,7 @@ jobs:
   ai:
     name: AI service
     runs-on: ubuntu-latest
-    if: hashFiles('ai/requirements.txt')
+    if: ${{ hashFiles('ai/requirements.txt') != '' }}
     defaults:
       run:
         working-directory: ai
@@ -88,7 +88,7 @@ jobs:
   web:
     name: Web
     runs-on: ubuntu-latest
-    if: hashFiles('web/package.json')
+    if: ${{ hashFiles('web/package.json') != '' }}
     defaults:
       run:
         working-directory: web
