@@ -1,0 +1,695 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Store Advisor — Complete API Reference",
+    "description": "All HTTP endpoints across the Store Advisor project.\n\n**Services:**\n- **Data Cleaning API** (FastAPI · Python) — `http://localhost:8000` — Upload & clean tabular data\n- **Store Advisor API** (NestJS · TypeScript) — `http://localhost:3000` — Findings, uploads, selections\n\nInteractive docs are also available directly from each service:\n- FastAPI Swagger: `http://localhost:8000/docs`\n- NestJS Swagger: `http://localhost:3000/api-docs`",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Store Advisor — Graduation Project",
+      "url": "https://github.com/store-advisor"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000",
+      "description": "Data Cleaning API (FastAPI · Python)"
+    },
+    {
+      "url": "http://localhost:3000",
+      "description": "Store Advisor API (NestJS · TypeScript)"
+    }
+  ],
+  "tags": [
+    {
+      "name": "cleaning",
+      "description": "Data cleaning & profiling endpoints (FastAPI — port 8000)"
+    },
+    {
+      "name": "health",
+      "description": "Liveness probe (NestJS — port 3000)"
+    },
+    {
+      "name": "findings",
+      "description": "Merchant findings (NestJS — port 3000)"
+    },
+    {
+      "name": "uploads",
+      "description": "File upload registry (NestJS — port 3000)"
+    },
+    {
+      "name": "selections",
+      "description": "Pipeline selection records (NestJS — port 3000)"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT Bearer token required by all NestJS endpoints except GET /health. In development, any non-empty string is accepted."
+      }
+    },
+    "schemas": {
+      "ServiceInfo": {
+        "type": "object",
+        "properties": {
+          "service": { "type": "string", "example": "Store Advisor — Data Cleaning API" },
+          "version": { "type": "string", "example": "1.0.0" },
+          "endpoints": {
+            "type": "array",
+            "items": { "type": "string" },
+            "example": ["/api/profile", "/api/clean", "/api/clean/download", "/docs"]
+          }
+        }
+      },
+      "ProfileDatasetResponse": {
+        "type": "object",
+        "properties": {
+          "rows": { "type": "integer", "example": 1000 },
+          "columns": { "type": "integer", "example": 15 },
+          "duplicate_rows": { "type": "integer", "example": 5 }
+        }
+      },
+      "ProfileColumnResponse": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "example": "order_id" },
+          "dtype": { "type": "string", "example": "int64" },
+          "missing_count": { "type": "integer", "example": 0 },
+          "missing_percentage": { "type": "number", "format": "float", "example": 0.0 },
+          "unique_count": { "type": "integer", "example": 1000 },
+          "quality_flags": {
+            "type": "array",
+            "items": { "type": "string" },
+            "example": []
+          },
+          "numerical_stats": {
+            "type": "object",
+            "nullable": true,
+            "example": { "mean": 5000.5, "std": 288.96, "min": 1, "25%": 2500.75, "50%": 5000.5, "75%": 7500.25, "max": 10000 }
+          },
+          "categorical_stats": {
+            "type": "object",
+            "nullable": true,
+            "example": null
+          }
+        }
+      },
+      "ProfileResponse": {
+        "type": "object",
+        "properties": {
+          "dataset": { "$ref": "#/components/schemas/ProfileDatasetResponse" },
+          "columns": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ProfileColumnResponse" }
+          }
+        }
+      },
+      "ValidationResult": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "example": "passed" },
+          "errors": { "type": "array", "items": { "type": "string" }, "example": [] },
+          "rows_before": { "type": "integer", "example": 1000 },
+          "rows_after": { "type": "integer", "example": 958 },
+          "rows_removed": { "type": "integer", "example": 42 },
+          "columns_before": { "type": "integer", "example": 15 },
+          "columns_after": { "type": "integer", "example": 15 },
+          "columns_dropped": { "type": "array", "items": { "type": "string" }, "example": [] },
+          "duplicate_rows": { "type": "integer", "example": 42 },
+          "missing_values": { "type": "integer", "example": 0 },
+          "dtype_changes": { "type": "object", "example": {} }
+        }
+      },
+      "CleanReport": {
+        "type": "object",
+        "properties": {
+          "pipeline": { "type": "string", "example": "basic" },
+          "rows": {
+            "type": "object",
+            "properties": {
+              "before": { "type": "integer", "example": 1000 },
+              "after": { "type": "integer", "example": 958 }
+            }
+          },
+          "duplicates": {
+            "type": "object",
+            "properties": {
+              "removed": { "type": "integer", "example": 42 }
+            }
+          },
+          "missing_values": {
+            "type": "object",
+            "additionalProperties": { "type": "string" },
+            "example": { "price": "median", "category": "mode" }
+          },
+          "dropped_columns": {
+            "type": "array",
+            "items": { "type": "string" },
+            "example": []
+          },
+          "outliers": {
+            "type": "object",
+            "additionalProperties": { "type": "string" },
+            "example": { "price": "remove" }
+          },
+          "type_changes": { "type": "object", "example": {} },
+          "validation": { "$ref": "#/components/schemas/ValidationResult" }
+        }
+      },
+      "CleanResponse": {
+        "type": "object",
+        "properties": {
+          "report": { "$ref": "#/components/schemas/CleanReport" },
+          "cleaned_csv_base64": {
+            "type": "string",
+            "description": "Base64-encoded cleaned CSV file",
+            "example": "aWQsbmFtZSxhZ2UKMSxBbGljZSwyNQ..."
+          }
+        }
+      },
+      "FastAPIError": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": "string",
+            "example": "Unsupported file type '.txt'. Supported: .csv, .json, .xls, .xlsx"
+          }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "example": "ok" }
+        }
+      },
+      "FindingStatus": {
+        "type": "string",
+        "enum": ["OPEN", "RESOLVED", "DISMISSED"],
+        "description": "Current status of the finding"
+      },
+      "FindingResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "cm7a1b2c3d4e5f6g7h8i9j0k1", "description": "Unique finding identifier (cuid)" },
+          "merchantId": { "type": "string", "example": "merchant_123" },
+          "checkId": { "type": "string", "example": "ad_spend_on_oos", "description": "Check module that generated the finding" },
+          "status": { "$ref": "#/components/schemas/FindingStatus" },
+          "evidence": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Deterministic evidence payload from the check module",
+            "example": { "stock_out_at": "2026-03-04T09:12:00.000Z", "daily_spend": 40.5, "days_active": 7 }
+          },
+          "estimatedCost": { "type": "number", "example": 284.0, "description": "Estimated weekly financial loss in USD" },
+          "llmExplanation": {
+            "type": "string",
+            "nullable": true,
+            "example": "You are spending $40.50/day on ads for a product that is out of stock.",
+            "description": "LLM-generated plain-language explanation"
+          },
+          "llmConfidence": {
+            "type": "number",
+            "nullable": true,
+            "example": 0.95,
+            "description": "LLM confidence score (0.0 – 1.0)"
+          },
+          "createdAt": { "type": "string", "format": "date-time", "example": "2026-08-15T12:00:00.000Z" }
+        }
+      },
+      "UploadResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "cm7a1b2c3d4e5f6g7h8i9j0k1", "description": "Unique upload identifier (cuid)" },
+          "sessionId": { "type": "string", "example": "session_abc123" },
+          "filename": { "type": "string", "example": "sales_data.csv" },
+          "sizeBytes": { "type": "integer", "example": 204800 },
+          "storageRef": { "type": "string", "example": "uploads/file-1718000000000-123456789.csv" },
+          "createdAt": { "type": "string", "format": "date-time", "example": "2026-08-17T10:00:00.000Z" }
+        }
+      },
+      "SelectionRequest": {
+        "type": "object",
+        "required": ["uploadId", "sessionId", "pipelineUsed"],
+        "properties": {
+          "uploadId": { "type": "string", "example": "cm7a1b2c3d4e5f6g7h8i9j0k1", "description": "ID returned by POST /uploads" },
+          "sessionId": { "type": "string", "example": "session_abc123" },
+          "pipelineUsed": { "type": "string", "example": "basic", "description": "Pipeline applied: basic | advanced | manual" }
+        }
+      },
+      "SelectionResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "cm7x9y8z7w6v5u4t3s2r1q0p9" },
+          "uploadId": { "type": "string", "example": "cm7a1b2c3d4e5f6g7h8i9j0k1" },
+          "sessionId": { "type": "string", "example": "session_abc123" },
+          "pipelineUsed": { "type": "string", "example": "basic" },
+          "createdAt": { "type": "string", "format": "date-time", "example": "2026-08-17T10:01:00.000Z" }
+        }
+      },
+      "NestJSError": {
+        "type": "object",
+        "properties": {
+          "statusCode": { "type": "integer", "example": 400 },
+          "message": { "type": "string", "example": "uploadId is required" },
+          "error": { "type": "string", "example": "Bad Request" }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/": {
+      "get": {
+        "tags": ["cleaning"],
+        "summary": "Service info",
+        "description": "Returns service metadata and a list of all available endpoints.",
+        "operationId": "getServiceInfo",
+        "servers": [{ "url": "http://localhost:8000", "description": "FastAPI" }],
+        "responses": {
+          "200": {
+            "description": "Service info",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ServiceInfo" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/profile": {
+      "post": {
+        "tags": ["cleaning"],
+        "summary": "Profile a dataset",
+        "description": "Upload a tabular file and receive a full data quality profile: column types, missing-value counts, duplicate rows, and per-column statistics.",
+        "operationId": "profileDataset",
+        "servers": [{ "url": "http://localhost:8000", "description": "FastAPI" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["file"],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "CSV, XLSX, XLS, or JSON file"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile returned successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ProfileResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Unsupported file type",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/FastAPIError" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error — missing file field",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/FastAPIError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/clean": {
+      "post": {
+        "tags": ["cleaning"],
+        "summary": "Clean a dataset (JSON + Base64 CSV)",
+        "description": "Upload a file, run the selected cleaning pipeline, and receive a JSON report alongside the cleaned CSV encoded as Base64.\n\n**Pipelines:**\n- `basic` — Fixed sequence: deduplicate → impute missing (median/mode) → remove outliers (IQR)\n- `advanced` — Profile-driven auto selection of strategies\n- `manual` — Per-column control using `dup_strategy`, `missing_strategies`, `outlier_strategies`\n\n**Manual pipeline strategy values:**\n\n*Missing values:* `median` · `mean` · `mode` · `zero` · `unknown` · `drop`\n\n*Outliers:* `remove` · `cap` · `keep`",
+        "operationId": "cleanDataset",
+        "servers": [{ "url": "http://localhost:8000", "description": "FastAPI" }],
+        "parameters": [
+          {
+            "name": "pipeline",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["basic", "advanced", "manual"],
+              "default": "basic"
+            },
+            "description": "Pipeline to run"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["file"],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "CSV, XLSX, XLS, or JSON file"
+                  },
+                  "dup_strategy": {
+                    "type": "string",
+                    "enum": ["remove", "keep"],
+                    "default": "remove",
+                    "description": "Duplicate row strategy — manual pipeline only"
+                  },
+                  "missing_strategies": {
+                    "type": "string",
+                    "description": "JSON object { column: strategy } — manual pipeline only. Strategies: median, mean, mode, zero, unknown, drop",
+                    "example": "{\"price\":\"median\",\"category\":\"mode\"}"
+                  },
+                  "outlier_strategies": {
+                    "type": "string",
+                    "description": "JSON object { column: strategy } — manual pipeline only. Strategies: remove, cap, keep",
+                    "example": "{\"price\":\"remove\",\"quantity\":\"cap\"}"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cleaning report + Base64-encoded cleaned CSV",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CleanResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Unsupported file type or invalid pipeline value",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/FastAPIError" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error — missing file field",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/FastAPIError" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error during pipeline execution",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/FastAPIError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/clean/download": {
+      "post": {
+        "tags": ["cleaning"],
+        "summary": "Clean a dataset (direct CSV download)",
+        "description": "Identical to `POST /api/clean` but returns the cleaned file directly as a `text/csv` download instead of Base64. Accepts the same query parameters and form fields.",
+        "operationId": "cleanDatasetDownload",
+        "servers": [{ "url": "http://localhost:8000", "description": "FastAPI" }],
+        "parameters": [
+          {
+            "name": "pipeline",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["basic", "advanced", "manual"],
+              "default": "basic"
+            },
+            "description": "Pipeline to run"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["file"],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "CSV, XLSX, XLS, or JSON file"
+                  },
+                  "dup_strategy": {
+                    "type": "string",
+                    "enum": ["remove", "keep"],
+                    "default": "remove",
+                    "description": "Duplicate row strategy — manual pipeline only"
+                  },
+                  "missing_strategies": {
+                    "type": "string",
+                    "description": "JSON object { column: strategy } — manual pipeline only",
+                    "example": "{\"price\":\"median\"}"
+                  },
+                  "outlier_strategies": {
+                    "type": "string",
+                    "description": "JSON object { column: strategy } — manual pipeline only",
+                    "example": "{\"price\":\"cap\"}"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cleaned CSV file",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            },
+            "headers": {
+              "Content-Disposition": {
+                "schema": { "type": "string" },
+                "example": "attachment; filename=cleaned.csv"
+              }
+            }
+          },
+          "400": {
+            "description": "Unsupported file type or invalid pipeline value",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/FastAPIError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": ["health"],
+        "summary": "Health check",
+        "description": "Simple liveness probe. No authentication required.",
+        "operationId": "getHealth",
+        "servers": [{ "url": "http://localhost:3000", "description": "NestJS" }],
+        "responses": {
+          "200": {
+            "description": "Service is healthy",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HealthResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/findings": {
+      "get": {
+        "tags": ["findings"],
+        "summary": "List findings for a merchant",
+        "description": "Returns all findings for a given merchant ordered by creation date descending. Requires Bearer authentication.",
+        "operationId": "getFindings",
+        "servers": [{ "url": "http://localhost:3000", "description": "NestJS" }],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "merchant_id",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Merchant identifier (non-empty string)",
+            "example": "merchant_123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of findings (may be empty)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/FindingResponse" }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "merchant_id missing or empty",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NestJSError" }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization header missing or invalid",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NestJSError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/uploads": {
+      "post": {
+        "tags": ["uploads"],
+        "summary": "Upload a file",
+        "description": "Upload a file and register it in the database. Returns the upload record with an `id` that can be referenced in `POST /selections`.",
+        "operationId": "uploadFile",
+        "servers": [{ "url": "http://localhost:3000", "description": "NestJS" }],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["file", "sessionId"],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "The file to upload (stored on disk)"
+                  },
+                  "sessionId": {
+                    "type": "string",
+                    "description": "Client-provided session identifier",
+                    "example": "session_abc123"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Upload record created and returned",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UploadResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "file or sessionId missing",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NestJSError" }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization header missing or invalid",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NestJSError" }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to record upload in the database",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NestJSError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/selections": {
+      "post": {
+        "tags": ["selections"],
+        "summary": "Record pipeline selection",
+        "description": "Record which cleaning pipeline a user selected for a previously uploaded file. Creates a `FileSelection` record linking an upload to a session and pipeline choice.",
+        "operationId": "recordSelection",
+        "servers": [{ "url": "http://localhost:3000", "description": "NestJS" }],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SelectionRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Selection record created and returned",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SelectionResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "uploadId, sessionId, or pipelineUsed missing",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NestJSError" }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization header missing or invalid",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NestJSError" }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to record selection in the database",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NestJSError" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
