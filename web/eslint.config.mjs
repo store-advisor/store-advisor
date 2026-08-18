@@ -12,9 +12,6 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // Jest's Next.js helper is CommonJS by design, so the config file has to
-    // use require(). Linting it as ESM application code is a false positive.
-    "jest.config.js",
   ]),
 ]);
 
