@@ -24,6 +24,16 @@ describe('AuthStubGuard', () => {
     expect(guard.canActivate(context)).toBe(true);
   });
 
+  it('allows access when the scheme is lowercase (RFC 7235)', () => {
+    const context = createMockContext('bearer valid-token-123');
+    expect(guard.canActivate(context)).toBe(true);
+  });
+
+  it('allows access when the scheme is mixed case', () => {
+    const context = createMockContext('BEARER valid-token-123');
+    expect(guard.canActivate(context)).toBe(true);
+  });
+
   it('throws UnauthorizedException when Authorization header is missing', () => {
     const context = createMockContext(undefined);
     expect(() => guard.canActivate(context)).toThrow(UnauthorizedException);
