@@ -1,0 +1,49 @@
+version: 2
+
+# Grouped weekly updates. Grouping matters: an ungrouped Dependabot on a
+# monorepo opens a dozen PRs a week and the team learns to ignore all of them.
+updates:
+  - package-ecosystem: npm
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      nestjs:
+        patterns: ['@nestjs/*']
+      prisma:
+        patterns: ['prisma', '@prisma/*']
+      dev-tooling:
+        dependency-type: development
+
+  - package-ecosystem: npm
+    directory: /web
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      next:
+        patterns: ['next', 'react', 'react-dom', 'eslint-config-next']
+      dev-tooling:
+        dependency-type: development
+
+  - package-ecosystem: pip
+    directory: /ai
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+
+  - package-ecosystem: docker
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
