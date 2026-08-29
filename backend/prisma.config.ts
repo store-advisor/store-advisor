@@ -13,6 +13,11 @@ export default defineConfig({
   schema: 'prisma/schema.prisma',
   migrations: {
     path: 'prisma/migrations',
+    // `prisma db seed` entry point. tsx rather than a compiled step so the
+    // fixture stays runnable straight from a checkout, and rather than
+    // ts-node because the project's nodenext module resolution needs
+    // overrides that ts-node and tsconfig then disagree about.
+    seed: 'tsx prisma/seed.ts',
   },
   datasource: {
     url: process.env.DATABASE_URL as string,
