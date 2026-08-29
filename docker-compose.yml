@@ -46,20 +46,23 @@ services:
     # service — run with `docker compose run --rm migrate`, or as a
     # dependency gate for api/worker below.
 
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: runtime
+    ports:
+      - '${API_PORT:-3000}:3000'
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://storeadvisor:localdev@postgres:5432/storeadvisor}
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
   # Uncomment as each service gets built.
-  #
-  # api:
-  #   build: ./backend
-  #   ports:
-  #     - '3000:3000'
-  #   environment:
-  #     DATABASE_URL: ${DATABASE_URL:-postgresql://storeadvisor:localdev@postgres:5432/storeadvisor}
-  #     REDIS_URL: redis://redis:6379
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     migrate:
-  #       condition: service_completed_successfully
   #
   # worker:
   #   build: ./backend
