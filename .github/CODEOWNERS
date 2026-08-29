@@ -1,0 +1,39 @@
+# Code owners — derived from docs/ROLES.md.
+#
+# GitHub auto-requests a review from the owner of every path a PR touches.
+# This turns the ownership table in ROLES.md from a document into something
+# the repo actually enforces.
+#
+# Note: CODEOWNERS fails silently on an unknown handle — it simply requests
+# nobody. If you change this file, verify the review request actually appears
+# on the next PR.
+
+# Default: the tech lead sees anything not claimed below.
+*                           @Ahmad-Faraj
+
+# Schema and the store connector — the data layer everything else reads.
+/backend/prisma/            @Basem3sam
+/backend/docs/database/     @Basem3sam
+
+# The API and the finding/action contract that web and mobile depend on.
+/backend/src/findings/      @haggag66
+/backend/src/health/        @haggag66
+/backend/src/common/        @haggag66
+/backend/src/auth/          @haggag66
+
+# The AI service: explanation, pricing, ranking.
+/ai/                        @Khaled-ghoneim
+
+# Web dashboard.
+/web/                       @Ahmad-Faraj
+
+# Infra, CI, deploys.
+/infra/                     @Ahmad-Faraj
+/.github/                   @Ahmad-Faraj
+/docker-compose.yml         @Ahmad-Faraj
+/backend/Dockerfile         @Ahmad-Faraj
+
+# TODO: /backend/src/checks/ belongs to the check-engine owner (Abdallah) once
+# that directory exists, and /mobile/ to the mobile owner. Neither is mapped
+# yet because the handle mapping was not confirmed — add them rather than
+# leaving them to fall through to the default above.
