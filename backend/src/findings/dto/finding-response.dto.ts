@@ -60,6 +60,16 @@ export class FindingResponseDto {
   })
   llmConfidence: number | null;
 
+  @ApiPropertyOptional({
+    description:
+      'LLM severity ranking. Free text rather than an enum: severity is a judgement ' +
+      'the model makes, not an internal state, so widening its vocabulary must not ' +
+      'require a migration.',
+    nullable: true,
+    example: 'high',
+  })
+  llmSeverity: string | null;
+
   @ApiProperty({
     description: 'Timestamp when finding was created',
     example: '2026-08-15T12:00:00.000Z',

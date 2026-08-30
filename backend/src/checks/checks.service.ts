@@ -141,6 +141,18 @@ export class ChecksService {
       return;
     }
 
+    // An explanation describes a specific set of numbers. When those numbers
+    // move, the prose stops being true, so it is cleared and the finding
+    // becomes eligible to be explained again. The engine is not reaching into
+    // stage 3 to do this — it is discarding derived fields that no longer
+    // match what they were derived from.
+    //
+    // Keyed on estimatedCost rather than on the whole evidence blob: it is
+    // the headline figure and the one the prose is built around, and jsonb
+    // does not preserve key order, so comparing serialised evidence would
+    // report a change on every run and re-explain — at cost — hourly.
+    const costChanged = Number(existing.estimatedCost) !== result.estimatedCost;
+
     await this.prisma.finding.update({
       where: { id: existing.id },
       data: {
@@ -149,6 +161,13 @@ export class ChecksService {
         // A finding previously marked FIXED that the check has found again
         // is, by definition, not fixed.
         status: FindingStatus.OPEN,
+        ...(costChanged
+          ? {
+              llmExplanation: null,
+              llmConfidence: null,
+              llmSeverity: null,
+            }
+          : {}),
       },
     });
   }

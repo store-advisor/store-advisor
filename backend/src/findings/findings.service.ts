@@ -21,6 +21,7 @@ export class FindingsService {
       estimatedCost: Number(f.estimatedCost),
       llmExplanation: f.llmExplanation,
       llmConfidence: f.llmConfidence,
+      llmSeverity: f.llmSeverity,
       createdAt: f.createdAt,
     }));
   }
