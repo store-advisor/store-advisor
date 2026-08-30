@@ -16,6 +16,20 @@ updates:
         patterns: ['prisma', '@prisma/*']
       dev-tooling:
         dependency-type: development
+    ignore:
+      # ts-jest 29 declares peer `typescript >=4.3 <7`, so TypeScript 7 fails
+      # `npm ci` with ERESOLVE before a single test runs. Held back rather
+      # than forced: --legacy-peer-deps would install a combination ts-jest
+      # does not support and move the breakage from CI into the test runner.
+      #
+      # This blocks only the major. Patches and minors on the 5.x line still
+      # come through, and the whole dev-tooling group was stuck behind this
+      # one package.
+      #
+      # Remove when a ts-jest release accepts TypeScript 7: check the peer
+      # range with `npm view ts-jest peerDependencies`.
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
 
   - package-ecosystem: npm
     directory: /web
