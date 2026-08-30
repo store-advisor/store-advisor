@@ -11,7 +11,7 @@ reviewed. Owning something does not mean working alone, it means the buck stops 
 | 2 | **Ahmed Abdallah** | Backend | The check engine (the core service) | NestJS, BullMQ, raw SQL |
 | 3 | **Ahmed Essam** | Backend | The ads connector and service observability | NestJS, Prisma |
 | 4 | **Basem Essam** | Backend | The schema and the store connector (the data layer) | NestJS, Prisma, Postgres |
-| 5 | **Khaled Ghoniem** | AI | The AI service: LLM explanation, pricing, ranking, the eval set | Python, FastAPI, Anthropic SDK |
+| 5 | **Khaled Ghoniem** | AI | The AI service: LLM explanation, ranking, the eval set. Never pricing | Python, FastAPI, Anthropic SDK |
 | 6 | **Mohamed Haggag** | Backend | The API and the finding/action contract | NestJS, Zod |
 | 7 | **Omar Ali Abdelrady** | UI/UX | Design system, the findings and dashboard screens, the demo flow | Figma |
 | 8 | *To be assigned* | AI/ML | Second engineer on the analytics and ML track, alongside Khaled | Python, scikit-learn, Prophet |

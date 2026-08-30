@@ -153,7 +153,7 @@ and proves it worked. That is our differentiator, and it is what we demo.
 | **Store connector** | Pull store data, normalize, write state + events | NestJS | Basem Essam |
 | **Ads connector** | Pull ad data against the same interface; observability | NestJS | Ahmed Essam |
 | **Check engine** | Run checks, emit findings. **The core.** | NestJS | Ahmed Abdallah |
-| **AI service** | LLM explains, prices, ranks findings | Python | Khaled Ghoniem |
+| **AI service** | LLM explains and ranks findings. **Never prices them.** | Python | Khaled Ghoniem |
 | **API** | Serve findings, accept approvals | NestJS | Mohamed Haggag |
 | **Web dashboard** | Findings, approval, savings ledger. **The demo.** | Next.js (PWA) | Ahmed Faraj |
 | **Design** | Design system, the findings screens, the demo flow | Figma | Omar Ali Abdelrady |
