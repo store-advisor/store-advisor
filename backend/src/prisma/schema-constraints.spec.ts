@@ -17,12 +17,20 @@ describe('Schema constraints', () => {
   });
 
   afterAll(async () => {
-    await prisma.action.deleteMany({});
-    await prisma.finding.deleteMany({});
-    await prisma.adSpend.deleteMany({});
-    await prisma.campaignProduct.deleteMany({});
-    await prisma.campaign.deleteMany({});
-    await prisma.product.deleteMany({});
+    // Scoped to this suite's merchant. These deletes were unfiltered, which
+    // emptied the tables outright - including rows belonging to whichever
+    // other suite happened to be running at the same time, since Jest runs
+    // suites in parallel against one database. That surfaced as a foreign
+    // key violation in an unrelated spec, intermittently, depending on which
+    // suite finished first.
+    await prisma.action.deleteMany({ where: { merchantId } });
+    await prisma.finding.deleteMany({ where: { merchantId } });
+    await prisma.adSpend.deleteMany({ where: { merchantId } });
+    await prisma.campaignProduct.deleteMany({
+      where: { campaign: { merchantId } },
+    });
+    await prisma.campaign.deleteMany({ where: { merchantId } });
+    await prisma.product.deleteMany({ where: { merchantId } });
     await prisma.merchant.deleteMany({ where: { id: merchantId } });
     await prisma.$disconnect();
   });
