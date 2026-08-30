@@ -6,6 +6,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { HealthModule } from './health/health.module';
 import { FindingsModule } from './findings/findings.module';
 import { ChecksModule } from './checks/checks.module';
+import { ActionsModule } from './actions/actions.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { ChecksModule } from './checks/checks.module';
     HealthModule,
     FindingsModule,
     ChecksModule,
+    ActionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
