@@ -31,6 +31,26 @@ updates:
       - dependency-name: typescript
         update-types: ['version-update:semver-major']
 
+      # NestJS 12 ships as pure ESM. Jest here runs CommonJS through ts-jest,
+      # so every suite that imports @nestjs/common dies at collection with
+      # "Must use import to load ES Module" — 10 of 11 suites, before any
+      # assertion. Verified on Node 26 as well as 22, so this is not the
+      # `require(esm)` version gate Jest points at; the CommonJS transform is.
+      #
+      # Taking Nest 12 means migrating the test setup to ESM. That is a piece
+      # of work with its own PR, not a version bump, and it drags TypeScript 6
+      # in with it: @nestjs/schematics@12 peers `typescript >=6.0.0`, and TS 6
+      # additionally wants an explicit `rootDir`, `ignoreDeprecations` for
+      # `baseUrl`, and definite-assignment assertions on all 14 Swagger DTO
+      # properties. All of that was measured, none of it is speculative.
+      #
+      # Held at the major only: 11.x patches and minors still come through,
+      # and without this the whole dev-tooling group stays red.
+      #
+      # Remove together with the ESM migration, not before.
+      - dependency-name: '@nestjs/*'
+        update-types: ['version-update:semver-major']
+
   - package-ecosystem: npm
     directory: /web
     schedule:
