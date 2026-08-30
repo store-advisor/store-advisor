@@ -22,7 +22,7 @@ jobs:
       ai_exists: ${{ steps.check.outputs.ai_exists }}
       web_exists: ${{ steps.check.outputs.web_exists }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: check
         run: |
           {
@@ -65,7 +65,7 @@ jobs:
     env:
       DATABASE_URL: postgres://storeadvisor:localdev@localhost:5432/storeadvisor_test
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -135,7 +135,7 @@ jobs:
     needs: check-files
     if: needs.check-files.outputs.backend_exists == 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Build and start the stack
         run: docker compose up -d --build
@@ -199,7 +199,7 @@ jobs:
       run:
         working-directory: ai
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -217,7 +217,7 @@ jobs:
       run:
         working-directory: web
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: 22
