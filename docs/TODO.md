@@ -24,9 +24,6 @@ will hurt us if nobody picks them up. Each needs an owner.
       for local dev (a `.env` that is gitignored). **Owner: Faraj.**
 - [ ] **Environments.** Do we have a staging deploy on Cloud Run, or only local plus the demo
       machine? **Owner: Faraj.**
-- [ ] **Branch protection.** Blocked on GitHub free tier for private repos. Options: Datajar
-      sponsors GitHub Team, apply for the Student Pack, or make the repo public. Until then,
-      PRs are a convention, not enforced. **Owner: Faraj.**
 
 ## Before demo day
 
@@ -38,6 +35,16 @@ will hurt us if nobody picks them up. Each needs an owner.
 ## Closed
 
 - [x] **Book the supervisor.** Dr. Gehad Taher, confirmed 8 August 2026.
+- [x] **Branch protection.** The blocker was the free tier, which does not protect branches on
+      a private repository. Resolved by making the repo public rather than by buying a plan:
+      academic integrity and sponsor exposure were both checked first, and a full secret scan
+      came back clean. `main` now takes changes only through a pull request whose pipeline is
+      green and whose branch is up to date, and it cannot be deleted or force-pushed. Nobody
+      bypasses it, the tech lead included. PRs are enforced, not a convention.
+
+      It is configured as a repository **ruleset**, not as classic branch protection, so the
+      old `/branches/main/protection` API answers 404 and the classic settings page looks
+      empty. Look under Settings, Rules, Rulesets.
 
 ## How to use this file
 
