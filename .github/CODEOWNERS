@@ -33,7 +33,10 @@
 /docker-compose.yml         @Ahmad-Faraj
 /backend/Dockerfile         @Ahmad-Faraj
 
-# TODO: /backend/src/checks/ belongs to the check-engine owner (Abdallah) once
-# that directory exists, and /mobile/ to the mobile owner. Neither is mapped
-# yet because the handle mapping was not confirmed — add them rather than
-# leaving them to fall through to the default above.
+# TODO: /backend/src/checks/ belongs to the check-engine owner (Ahmed Abdallah)
+# once that directory lands on main. Not mapped yet because the handle was not
+# confirmed — add it rather than leaving the core to fall through to the
+# default above.
+#
+# There is no /mobile/ entry because there is no mobile app: delivery is the
+# Next.js PWA under /web/. See docs/HANDBOOK.md section 5.

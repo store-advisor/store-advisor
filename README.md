@@ -28,8 +28,7 @@ and the rules we follow. Read it before writing any code.
 ```
 backend/    NestJS: connectors, check engine, API
 ai/         Python: the LLM layer that explains and prices findings
-web/        Next.js: dashboard
-mobile/     Flutter: notifications and one-tap approval
+web/        Next.js: the dashboard, installable as a PWA, Web Push
 infra/      Docker, CI, deploy
 docs/       The handbook and decisions
 ```
