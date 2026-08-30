@@ -160,6 +160,26 @@ jobs:
           echo "GET /findings without auth -> $code"
           [ "$code" = "401" ] || { echo "::error::expected 401, got $code"; exit 1; }
 
+      # Same reasoning as the API check above, for the service added in stage
+      # 3: nothing else in CI builds ai/Dockerfile, so without this a broken
+      # image would first be discovered at deploy time.
+      #
+      # No API key here, and none needed. The container must boot and serve
+      # /health regardless — it only needs credentials to answer /api/explain,
+      # and failing to start without them would take the whole stack down over
+      # an optional enrichment.
+      - name: Wait for the AI service to serve /health
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:8000/health | grep -q '"status":"ok"'; then
+              echo "AI service healthy after ${i}s."
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::AI service did not serve /health within 60s."
+          exit 1
+
       # Always: when the smoke test fails, the container logs are the only
       # thing that explains why, and a failed step would otherwise skip this.
       - name: Dump logs on failure

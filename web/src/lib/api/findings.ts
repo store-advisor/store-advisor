@@ -26,6 +26,7 @@ export interface Finding {
   estimatedCost: number;
   llmExplanation: string | null;
   llmConfidence: number | null;
+  llmSeverity: string | null;
   createdAt: string;
 }
 

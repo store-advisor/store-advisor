@@ -56,11 +56,31 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql://storeadvisor:localdev@postgres:5432/storeadvisor}
       REDIS_URL: redis://redis:6379
+      AI_SERVICE_URL: http://ai:8000
     depends_on:
       postgres:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
+      # Deliberately NOT depends_on: ai. Explanations are an enrichment, not a
+      # prerequisite — the API serves findings and the check engine detects
+      # them whether or not the AI service is up. Gating the API on it would
+      # invent a dependency the code does not have.
+
+  ai:
+    build: ./ai
+    ports:
+      - '${AI_PORT:-8000}:8000'
+    environment:
+      # The only secret this service needs. Without it the container still
+      # starts and serves /health — it answers 503 with an actionable message
+      # on /api/explain, which is a far better failure than refusing to boot.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-opus-5}
+    # No DATABASE_URL, and that is the point. The AI service never reads the
+    # database: it is handed the evidence a check already proved and returns
+    # prose. Giving it a connection string would invite exactly the coupling
+    # the golden rule exists to prevent.
 
   # Uncomment as each service gets built.
   #
@@ -75,13 +95,6 @@ services:
   #       condition: service_healthy
   #     migrate:
   #       condition: service_completed_successfully
-  #
-  # ai:
-  #   build: ./ai
-  #   ports:
-  #     - "8000:8000"
-  #   environment:
-  #     DATABASE_URL: ${DATABASE_URL:-postgresql://storeadvisor:localdev@postgres:5432/storeadvisor}
 
 volumes:
   pgdata:
