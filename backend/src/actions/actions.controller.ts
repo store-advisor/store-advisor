@@ -8,7 +8,10 @@ import {
 } from '@nestjs/swagger';
 import { AuthStubGuard } from '../auth/auth-stub.guard';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
-import { ActionResponseDto, approveActionSchema } from './dto/approve-action.dto';
+import {
+  ActionResponseDto,
+  approveActionSchema,
+} from './dto/approve-action.dto';
 // `import type` is required here: isolatedModules with emitDecoratorMetadata
 // rejects a value import used only as a type in a decorated signature.
 import type { ApproveActionBody } from './dto/approve-action.dto';
@@ -30,7 +33,10 @@ export class ActionsController {
   })
   @ApiParam({ name: 'findingId', description: 'Finding to act on' })
   @ApiResponse({ status: 201, type: ActionResponseDto })
-  @ApiResponse({ status: 400, description: 'Missing key, or the finding names no campaign' })
+  @ApiResponse({
+    status: 400,
+    description: 'Missing key, or the finding names no campaign',
+  })
   @ApiResponse({ status: 404, description: 'No such finding' })
   async approve(
     @Param('findingId') findingId: string,

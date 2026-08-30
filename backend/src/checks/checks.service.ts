@@ -59,7 +59,6 @@ export class ChecksService {
     return total;
   }
 
-
   /**
    * Close findings this check no longer reports.
    *
@@ -116,7 +115,7 @@ export class ChecksService {
         evidence: {
           path: ['dedupe_key'],
           equals: result.dedupeKey,
-        } as Prisma.JsonFilter,
+        },
       },
     });
 

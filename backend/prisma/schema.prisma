@@ -6,7 +6,7 @@
 // ============================================================================
 // Store Advisor — Database Schema (v1)
 // Ticket: SCRUM-7 — Database Schema and Migrations
-// Owner: Bassem
+// Owner: Basem Essam
 //
 // See /docs/database/erd.md and /docs/database/decisions.md for the full
 // architectural reasoning behind this schema.
@@ -277,8 +277,8 @@ model Finding {
 // ACTION
 //
 // A merchant-approved remediation attempt and its real-world result.
-// idempotencyKey is a DB-enforced unique constraint — the actual guarantee
-// against a retried "pause campaign" firing twice (decisions.md #5).
+// The idempotency key is a DB-enforced unique constraint — the actual
+// guarantee against a retried "pause campaign" firing twice (decisions.md #5).
 // merchantId is duplicated here (also reachable via Finding) per
 // decisions.md #6 — direct tenant filtering without depending on a join.
 // ----------------------------------------------------------------------------
@@ -289,7 +289,7 @@ model Action {
   findingId      String       @map("finding_id")
   actionType     String       @map("action_type")
   status         ActionStatus @default(PENDING)
-  idempotencyKey String       @unique @map("idempotency_key")
+  idempotencyKey String       @map("idempotency_key")
   request        Json
   response       Json?
   executedAt     DateTime?    @map("executed_at") @db.Timestamptz(3)
@@ -297,6 +297,12 @@ model Action {
   merchant Merchant @relation(fields: [merchantId], references: [id])
   finding  Finding  @relation(fields: [findingId], references: [id])
 
+  // Scoped to the merchant, NOT globally unique. The key is supplied by the
+  // caller, so two merchants can independently pick the same string — a
+  // global constraint would let one merchant's key block another's action
+  // and hand them back someone else's result. Uniqueness per tenant is the
+  // guarantee we actually need: one effect per merchant per key.
+  @@unique([merchantId, idempotencyKey])
   // Supports "previous action attempts for this finding" — needed for the
   // approve → fails → retry sequence the handbook describes.
   @@index([merchantId, status])

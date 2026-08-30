@@ -45,9 +45,7 @@ export class ActionsService {
     const campaignId = (finding.evidence as Record<string, unknown>)
       ?.campaign_id;
     if (typeof campaignId !== 'string') {
-      throw new BadRequestException(
-        'This finding has no campaign to pause.',
-      );
+      throw new BadRequestException('This finding has no campaign to pause.');
     }
 
     const request = { action: PAUSE_CAMPAIGN, campaign_id: campaignId };
@@ -61,7 +59,7 @@ export class ActionsService {
           actionType: PAUSE_CAMPAIGN,
           status: ActionStatus.PENDING,
           idempotencyKey,
-          request: request as Prisma.InputJsonValue,
+          request: request,
         },
       });
     } catch (error) {
@@ -69,11 +67,21 @@ export class ActionsService {
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2002'
       ) {
-        // Someone already claimed this key. Return what that attempt did
-        // rather than doing the work again — this is the double-tap, and it
-        // must be a no-op with a truthful answer, not an error.
+        // This merchant already claimed this key. Return what that attempt
+        // did rather than doing the work again — this is the double-tap, and
+        // it must be a no-op with a truthful answer, not an error.
+        //
+        // Scoped by merchant: keys are caller-supplied, so two merchants can
+        // and will pick the same string. An unscoped lookup would hand one
+        // merchant another's action id and status, and silently never pause
+        // the campaign they asked about.
         const existing = await this.prisma.action.findUnique({
-          where: { idempotencyKey },
+          where: {
+            merchantId_idempotencyKey: {
+              merchantId: finding.merchantId,
+              idempotencyKey,
+            },
+          },
         });
         if (existing) {
           this.logger.log(`Replayed idempotent action ${idempotencyKey}`);
@@ -87,15 +95,19 @@ export class ActionsService {
       throw error;
     }
 
-    return { ...(await this.execute(action.id, campaignId)), replayed: false };
+    return {
+      ...(await this.execute(action.id, finding.merchantId, campaignId)),
+      replayed: false,
+    };
   }
 
   private async execute(
     actionId: string,
+    merchantId: string,
     campaignId: string,
   ): Promise<{ id: string; status: ActionStatus }> {
-    const campaign = await this.prisma.campaign.findUnique({
-      where: { id: campaignId },
+    const campaign = await this.prisma.campaign.findFirst({
+      where: { id: campaignId, merchantId },
     });
 
     const platform = campaign
@@ -110,7 +122,10 @@ export class ActionsService {
     }
 
     try {
-      const result = await platform.pauseCampaign(campaign.externalId);
+      const result = await platform.pauseCampaign(
+        merchantId,
+        campaign.externalId,
+      );
       return this.finish(
         actionId,
         result.paused ? ActionStatus.SUCCEEDED : ActionStatus.FAILED,

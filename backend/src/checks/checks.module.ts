@@ -20,7 +20,9 @@ const REGISTERED_CHECKS = [AdSpendOnOosCheck];
     {
       provide: CHECKS,
       inject: REGISTERED_CHECKS,
-      useFactory: (...checks: InstanceType<(typeof REGISTERED_CHECKS)[number]>[]) => checks,
+      useFactory: (
+        ...checks: InstanceType<(typeof REGISTERED_CHECKS)[number]>[]
+      ) => checks,
     },
   ],
   exports: [ChecksService],

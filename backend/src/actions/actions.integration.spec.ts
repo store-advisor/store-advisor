@@ -200,9 +200,9 @@ describe('Actions: approve, execute, verify (integration)', () => {
       },
     });
 
-    await expect(actions.approve(orphan.id, 'key-orphan-finding')).rejects.toThrow(
-      /no campaign/i,
-    );
+    await expect(
+      actions.approve(orphan.id, 'key-orphan-finding'),
+    ).rejects.toThrow(/no campaign/i);
   });
 
   it('rejects an approval for a finding that does not exist', async () => {
@@ -229,5 +229,121 @@ describe('Actions: approve, execute, verify (integration)', () => {
 
     const result = await actions.approve(finding.id, 'key-second-pause');
     expect(result.status).toBe(ActionStatus.SUCCEEDED);
+  });
+
+  /**
+   * Two merchants, deliberately colliding.
+   *
+   * Everything above runs as a single tenant, which is exactly why both bugs
+   * these tests cover survived: with one merchant in the database, an
+   * unscoped lookup and a scoped one return the same row. The collisions
+   * below are the cheapest thing that tells them apart.
+   */
+  describe('tenant isolation', () => {
+    // The same external id on both sides. Real platforms hand out ids that
+    // are unique within an account, not across our whole database.
+    const SHARED_EXTERNAL_ID = 'c_shared_external_id';
+    const merchantA = 'isolation_merchant_a';
+    const merchantB = 'isolation_merchant_b';
+
+    let campaignA: string;
+    let campaignB: string;
+    let findingA: string;
+    let findingB: string;
+
+    async function seedMerchant(id: string) {
+      await prisma.merchant.create({ data: { id, name: `Merchant ${id}` } });
+      const campaign = await prisma.campaign.create({
+        data: {
+          merchantId: id,
+          source: 'demo_ads',
+          externalId: SHARED_EXTERNAL_ID,
+          name: 'Spring Sale',
+          status: 'active',
+          dailyBudget: 40.5,
+        },
+      });
+      const finding = await prisma.finding.create({
+        data: {
+          merchantId: id,
+          checkId: 'ad_spend_on_oos',
+          status: FindingStatus.OPEN,
+          evidence: { campaign_id: campaign.id, dedupe_key: `x:${id}` },
+          estimatedCost: 100,
+        },
+      });
+      return { campaignId: campaign.id, findingId: finding.id };
+    }
+
+    beforeAll(async () => {
+      ({ campaignId: campaignA, findingId: findingA } =
+        await seedMerchant(merchantA));
+      ({ campaignId: campaignB, findingId: findingB } =
+        await seedMerchant(merchantB));
+    });
+
+    afterAll(async () => {
+      const both = { in: [merchantA, merchantB] };
+      await prisma.action.deleteMany({ where: { merchantId: both } });
+      await prisma.finding.deleteMany({ where: { merchantId: both } });
+      await prisma.campaign.deleteMany({ where: { merchantId: both } });
+      await prisma.merchant.deleteMany({ where: { id: both } });
+    });
+
+    it('pauses only the approving merchant’s campaign', async () => {
+      const result = await actions.approve(findingB, 'key-isolation-b');
+      expect(result.status).toBe(ActionStatus.SUCCEEDED);
+
+      const b = await prisma.campaign.findUniqueOrThrow({
+        where: { id: campaignB },
+      });
+      expect(b.status).toBe('paused');
+
+      // The one that matters. Resolving the campaign on (source, externalId)
+      // alone would have found A's row first and paused a campaign nobody
+      // approved.
+      const a = await prisma.campaign.findUniqueOrThrow({
+        where: { id: campaignA },
+      });
+      expect(a.status).toBe('active');
+    });
+
+    it('does not let one merchant’s idempotency key block another’s', async () => {
+      // Keys are caller-supplied, so a collision needs no bad faith: two
+      // clients numbering their requests from one is enough.
+      const shared = 'key-both-merchants-picked-this';
+
+      const first = await actions.approve(findingA, shared);
+      expect(first.replayed).toBe(false);
+      expect(first.status).toBe(ActionStatus.SUCCEEDED);
+
+      const second = await actions.approve(findingB, shared);
+      expect(second.replayed).toBe(false);
+      expect(second.id).not.toBe(first.id);
+
+      // Each merchant gets their own row under the same key, and A's action
+      // is not handed back to B.
+      const rows = await prisma.action.findMany({
+        where: { idempotencyKey: shared },
+        orderBy: { merchantId: 'asc' },
+      });
+      expect(rows).toHaveLength(2);
+      expect(rows.map((r) => r.merchantId)).toEqual([merchantA, merchantB]);
+    });
+
+    it('still replays a repeat from the same merchant', async () => {
+      // Scoping the key must not weaken the actual guarantee it exists for.
+      const key = 'key-isolation-double-tap';
+      const first = await actions.approve(findingA, key);
+      const again = await actions.approve(findingA, key);
+
+      expect(again.replayed).toBe(true);
+      expect(again.id).toBe(first.id);
+
+      const count = await prisma.action.count({
+        where: { merchantId: merchantA, idempotencyKey: key },
+      });
+      expect(count).toBe(1);
+    });
   });
 });
