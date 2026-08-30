@@ -7,6 +7,7 @@ import { HealthModule } from './health/health.module';
 import { FindingsModule } from './findings/findings.module';
 import { ChecksModule } from './checks/checks.module';
 import { ActionsModule } from './actions/actions.module';
+import { ExplainModule } from './explain/explain.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { ActionsModule } from './actions/actions.module';
     FindingsModule,
     ChecksModule,
     ActionsModule,
+    ExplainModule,
   ],
   controllers: [AppController],
   providers: [AppService],

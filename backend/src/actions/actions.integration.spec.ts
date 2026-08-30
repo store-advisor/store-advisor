@@ -19,6 +19,11 @@ describe('Actions: approve, execute, verify (integration)', () => {
   let checks: ChecksService;
 
   const merchantId = 'actions_spec_merchant';
+  // This hook makes a dozen sequential round-trips to a real database.
+  // Jest's 5s default is a unit-test budget, and exceeding it here fails a
+  // suite that is working, just slowly - on a loaded CI runner or a laptop
+  // running several suites at once.
+  const HOOK_TIMEOUT_MS = 30_000;
   const STOCK_OUT_AT = new Date('2026-03-04T09:12:00.000Z');
 
   let productId: string;
@@ -29,6 +34,7 @@ describe('Actions: approve, execute, verify (integration)', () => {
       connectionString: process.env.DATABASE_URL,
     });
     prisma = new PrismaClient({ adapter });
+    await cleanup();
     const asService = prisma as unknown as PrismaService;
 
     actions = new ActionsService(asService, [new DemoAdPlatform(asService)]);
@@ -94,9 +100,17 @@ describe('Actions: approve, execute, verify (integration)', () => {
         },
       });
     }
-  });
+  }, HOOK_TIMEOUT_MS);
 
-  afterAll(async () => {
+  /**
+   * Ordered by foreign key, children first.
+   *
+   * Called before seeding as well as after, so a run that died partway
+   * through - a timeout, a killed process - does not leave rows that make
+   * every later run fail on a duplicate key. One flake should stay one flake
+   * rather than turning the suite permanently red.
+   */
+  async function cleanup() {
     await prisma.action.deleteMany({ where: { merchantId } });
     await prisma.finding.deleteMany({ where: { merchantId } });
     await prisma.adSpend.deleteMany({ where: { merchantId } });
@@ -107,8 +121,12 @@ describe('Actions: approve, execute, verify (integration)', () => {
     await prisma.campaign.deleteMany({ where: { merchantId } });
     await prisma.product.deleteMany({ where: { merchantId } });
     await prisma.merchant.deleteMany({ where: { id: merchantId } });
+  }
+
+  afterAll(async () => {
+    await cleanup();
     await prisma.$disconnect();
-  });
+  }, HOOK_TIMEOUT_MS);
 
   function findingForCheck() {
     return prisma.finding.findFirstOrThrow({

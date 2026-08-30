@@ -11,6 +11,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../app.module';
 import { ChecksService } from './checks.service';
+import { ExplainService } from '../explain/explain.service';
 
 async function main() {
   const merchantId = process.argv[2];
@@ -27,6 +28,14 @@ async function main() {
     const checks = app.get(ChecksService);
     const count = await checks.runAllForMerchant(merchantId);
     console.log(`Persisted ${count} finding(s) for ${merchantId}.`);
+
+    // Stage 3, as a second pass rather than a step inside detection. By the
+    // time this runs the findings are already durable, so nothing the AI
+    // service does — being slow, being down, being unconfigured — can change
+    // what was detected. It also picks up anything a previous run failed to
+    // explain, which is the retry.
+    const explained = await app.get(ExplainService).explainPending(merchantId);
+    console.log(`Explained ${explained} finding(s).`);
   } finally {
     await app.close();
   }

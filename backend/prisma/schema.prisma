@@ -262,6 +262,7 @@ model Finding {
   estimatedCost  Decimal       @map("estimated_cost") @db.Decimal(10, 2)
   llmExplanation String?       @map("llm_explanation")
   llmConfidence  Float?        @map("llm_confidence")
+  llmSeverity    String?       @map("llm_severity")
   createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
 
   merchant Merchant @relation(fields: [merchantId], references: [id])
