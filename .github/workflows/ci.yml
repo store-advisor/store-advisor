@@ -107,8 +107,22 @@ jobs:
                exit 1 ;;
           esac
 
+      # `lint` deliberately has no --fix. With it, eslint repaired the code in
+      # the runner, exited 0, and threw the repair away — so this step passed
+      # on code that does not pass lint, and main accumulated nine errors
+      # nobody saw. Use `npm run lint:fix` locally; CI only reports.
       - run: npm run lint
       - run: npm run build
+
+      # Runs every *.spec.ts under src/, which includes the integration specs
+      # that exercise real HTTP against the Postgres service above.
+      #
+      # `npm run test:e2e` is deliberately NOT run here. Its only test asserts
+      # that the unmodified Nest scaffold serves "Hello World!" at /, which
+      # gates nothing and would make deleting that scaffold a CI failure. The
+      # HTTP-level coverage that matters already lives in the *.integration
+      # .spec.ts files this step runs. If real end-to-end tests are ever
+      # written, wire the suite in then — and delete the scaffold test first.
       - run: npm test
 
   # The gap that let two defects sit on main for weeks: the unit suite passes
@@ -192,3 +206,8 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run build
+      # The dashboard shipped with a jest config and three suites that this
+      # job never ran. Under the merge policy in HANDBOOK.md section 8, green
+      # CI is what authorises a merge — so a test suite CI does not run is a
+      # test suite that does not exist.
+      - run: npm test
