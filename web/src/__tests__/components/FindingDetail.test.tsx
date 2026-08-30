@@ -10,6 +10,7 @@ const finding: Finding = {
   estimatedCost: 283.5,
   llmExplanation: null,
   llmConfidence: null,
+  llmSeverity: null,
   createdAt: '2026-08-29T23:23:22.905Z',
   evidence: {
     product_title: 'Blue Hoodie',
@@ -40,7 +41,10 @@ describe('FindingDetail', () => {
 
   it('says plainly when the AI has not explained it yet', () => {
     render(<FindingDetail finding={finding} />);
-    expect(screen.getByText(/Not explained yet/)).toBeInTheDocument();
+    expect(screen.getByText(/No explanation yet/)).toBeInTheDocument();
+    // The point of the message: an unexplained finding is still a finding,
+    // because the figures were computed rather than written by the model.
+    expect(screen.getByText(/computed from the evidence/i)).toBeInTheDocument();
   });
 
   it('shows the explanation and confidence once they exist', () => {
@@ -56,7 +60,7 @@ describe('FindingDetail', () => {
     expect(
       screen.getByText('You are paying for clicks nobody can convert.'),
     ).toBeInTheDocument();
-    expect(screen.getByText('Confidence 95%')).toBeInTheDocument();
+    expect(screen.getByText(/Confidence 95%/)).toBeInTheDocument();
   });
 
   it('hides the internal dedupe key from the evidence table', () => {
@@ -76,5 +80,31 @@ describe('FindingDetail', () => {
     );
     expect(screen.getByText('dead stock')).toBeInTheDocument();
     expect(screen.getByText('Units Unsold')).toBeInTheDocument();
+  });
+
+  it('shows the severity the AI service ranked it at', () => {
+    render(
+      <FindingDetail
+        finding={{
+          ...finding,
+          llmExplanation: 'You are paying for clicks nobody can convert.',
+          llmConfidence: 0.95,
+          llmSeverity: 'critical',
+        }}
+      />,
+    );
+    expect(screen.getByText('critical')).toBeInTheDocument();
+  });
+
+  it('renders a severity it has never seen rather than dropping it', () => {
+    // Severity is free text by design, so an unrecognised word must still
+    // reach the merchant instead of silently vanishing.
+    render(<FindingDetail finding={{ ...finding, llmSeverity: 'urgent' }} />);
+    expect(screen.getByText('urgent')).toBeInTheDocument();
+  });
+
+  it('shows no severity badge when the finding has not been explained', () => {
+    render(<FindingDetail finding={finding} />);
+    expect(screen.queryByTitle(/ranked by the AI service/i)).toBeNull();
   });
 });

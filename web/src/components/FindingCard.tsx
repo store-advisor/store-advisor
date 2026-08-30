@@ -4,6 +4,7 @@ import { AlertTriangle, CheckCircle2, MinusCircle } from 'lucide-react';
 import type { Finding } from '@/lib/api/findings';
 import { formatMoney, humanizeCheckId, formatDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import { SeverityBadge } from './SeverityBadge';
 
 const STATUS_STYLES = {
   OPEN: {
@@ -58,9 +59,12 @@ export function FindingCard({
             {humanizeCheckId(finding.checkId)}
           </span>
         </div>
-        <span className={cn('rounded px-2 py-0.5 text-xs', style.badge)}>
-          {style.label}
-        </span>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <SeverityBadge severity={finding.llmSeverity} />
+          <span className={cn('rounded px-2 py-0.5 text-xs', style.badge)}>
+            {style.label}
+          </span>
+        </div>
       </div>
 
       {/* The number is the headline. It is what the merchant reacts to, and

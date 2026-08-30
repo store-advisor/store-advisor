@@ -8,6 +8,7 @@ import {
   humanizeCheckId,
   humanizeKey,
 } from '@/lib/format';
+import { SeverityBadge } from './SeverityBadge';
 
 /**
  * Keys rendered as headline stats rather than in the evidence table, and how
@@ -90,7 +91,10 @@ export function FindingDetail({ finding }: { finding: Finding }) {
       )}
 
       <section className="mt-6">
-        <h3 className="text-sm font-medium text-zinc-300">Explanation</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-medium text-zinc-300">Explanation</h3>
+          <SeverityBadge severity={finding.llmSeverity} />
+        </div>
         {finding.llmExplanation ? (
           <>
             <p className="mt-2 text-sm leading-relaxed text-zinc-300">
@@ -98,16 +102,22 @@ export function FindingDetail({ finding }: { finding: Finding }) {
             </p>
             {finding.llmConfidence !== null && (
               <p className="mt-1 text-xs text-zinc-500">
-                Confidence {Math.round(finding.llmConfidence * 100)}%
+                Confidence {Math.round(finding.llmConfidence * 100)}% - the
+                model&rsquo;s own estimate, not a measurement
               </p>
             )}
           </>
         ) : (
-          // Deliberately explicit rather than hidden. The AI service is not
-          // wired up yet, and a blank space would read as a bug.
+          // Explicit rather than hidden: a blank space would read as a bug.
+          //
+          // The wording matters. Every figure above is proved and stays on
+          // screen whether or not this paragraph arrives, so the absence of
+          // prose is not the absence of a finding. An explanation is also
+          // withheld on purpose when the model puts a number in it that the
+          // evidence does not account for - see ExplainService.
           <p className="mt-2 text-sm text-zinc-500">
-            Not explained yet. The AI service fills this in once a finding is
-            queued to it.
+            No explanation yet. The figures above are unaffected: they were
+            computed from the evidence, not written by the model.
           </p>
         )}
       </section>
