@@ -29,9 +29,22 @@ export class ChecksService {
         for (const result of results) {
           await this.persist(merchantId, check.id, result);
         }
+
+        // Stage 6. Anything this check reported before and does not report
+        // now has stopped being true — the campaign was paused, the product
+        // was restocked, the leak was closed. Marking those fixed is what
+        // makes this an agent rather than a dashboard: it does not just say
+        // something is wrong, it notices when it is right again.
+        const fixed = await this.resolveFixed(
+          merchantId,
+          check.id,
+          results.map((r) => r.dedupeKey),
+        );
+
         total += results.length;
         this.logger.log(
-          `${check.id}: ${results.length} finding(s) for ${merchantId}`,
+          `${check.id}: ${results.length} finding(s) for ${merchantId}` +
+            (fixed > 0 ? `, ${fixed} now fixed` : ''),
         );
       } catch (error) {
         // One failing check must not silence the others. A merchant losing
@@ -44,6 +57,43 @@ export class ChecksService {
     }
 
     return total;
+  }
+
+
+  /**
+   * Close findings this check no longer reports.
+   *
+   * Only OPEN findings are touched. A dismissed finding stays dismissed, and
+   * one already marked fixed does not need marking again.
+   */
+  private async resolveFixed(
+    merchantId: string,
+    checkId: string,
+    stillFiring: string[],
+  ): Promise<number> {
+    const open = await this.prisma.finding.findMany({
+      where: { merchantId, checkId, status: FindingStatus.OPEN },
+    });
+
+    const firing = new Set(stillFiring);
+    const resolved = open.filter((finding) => {
+      const key = (finding.evidence as Record<string, unknown>)?.dedupe_key;
+      // A finding with no dedupe key predates this mechanism. Leaving it open
+      // is the safe choice: closing it would silently tell a merchant a
+      // problem went away that we never actually rechecked.
+      return typeof key === 'string' && !firing.has(key);
+    });
+
+    if (resolved.length === 0) {
+      return 0;
+    }
+
+    await this.prisma.finding.updateMany({
+      where: { id: { in: resolved.map((f) => f.id) } },
+      data: { status: FindingStatus.FIXED },
+    });
+
+    return resolved.length;
   }
 
   /**
