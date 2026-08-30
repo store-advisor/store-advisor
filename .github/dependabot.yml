@@ -76,6 +76,24 @@ updates:
       - dependency-name: typescript
         update-types: ['version-update:semver-major']
 
+      # ESLint 10 changed the rule context API: rules now receive a context
+      # object where `getFilename()` used to live on the second argument.
+      # eslint-plugin-react has not adopted it, and it arrives here bundled
+      # inside eslint-config-next, so it is not ours to upgrade. `npm run
+      # lint` dies before linting a single file:
+      #
+      #   TypeError: Error while loading rule 'react/display-name':
+      #   contextOrFilename.getFilename is not a function
+      #
+      # /backend deliberately does NOT hold eslint: it lints with
+      # typescript-eslint and took 10.x without complaint. This is a
+      # web-only incompatibility, so the hold is web-only too.
+      #
+      # Lift when eslint-config-next ships an eslint-plugin-react that
+      # supports ESLint 10.
+      - dependency-name: eslint
+        update-types: ['version-update:semver-major']
+
   - package-ecosystem: pip
     directory: /ai
     schedule:
