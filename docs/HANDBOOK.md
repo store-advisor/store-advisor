@@ -30,24 +30,39 @@ Neither the store nor the ad account knows this alone. You need both, joined on 
 
 ---
 
-## 2. Why this is not a copy of DataJar
+## 2. What actually makes this different
 
-DataJar is an AI analytics platform. You ask it a question in chat, an agent writes Python,
-runs it, and streams you an answer. I read their codebase: **every tool their agent has is a
-read tool, and every entry point is a user question.** Their only scheduled jobs are data
-sync. Nothing in DataJar ever speaks first.
+Read this carefully, because the obvious answer is wrong and someone will test you on it.
 
-| | DataJar | Store Advisor |
-|---|---|---|
-| Trigger | User asks a question | A schedule fires |
-| Direction | Pull | Push |
-| Output | An answer in chat | A priced finding + an action |
-| Nature | Reactive | Proactive |
-| Speaks first? | No | **Yes** |
+The tempting claim is "we join sources and write back to a platform, and nobody else does."
+That claim is false. Attribution suites like Triple Whale and Northbeam already unify store
+and ad data. And our own sponsor, Datajar, connects a merchant's store and ad accounts,
+answers questions in chat, and **its agent will pause an underperforming campaign when told
+to.** Joining sources and executing a fix distinguish nothing on their own. Do not build the
+pitch on them.
 
-They have the connectors, the data, the action executors, and the notification channels. They
-have **nothing in the middle** that runs a check and tells you something you did not ask for.
-That missing middle is us.
+| Capability | Native analytics | Attribution suites | Cloud advisors | Datajar | Store Advisor |
+|---|---|---|---|---|---|
+| Joins independent sources | No | Yes | n/a | Yes | Yes |
+| Explains the cause in plain language | No | No | No | Yes | Yes |
+| Prices the problem in currency | No | Partial | Yes | No | Yes |
+| Executes the fix on approval | No | No | Partial | Yes | Yes |
+| **Speaks without being asked** | No | No | Yes | No | **Yes** |
+| **Verifies its own fix worked** | No | No | No | No | **Yes** |
+
+**Two rows survive.** Every system above acts only when addressed, except the cloud advisors
+(AWS Trusted Advisor, Google Cloud Recommender), which speak first but never check their own
+work. None of them re-observes the source to confirm a remediation actually landed.
+
+So the contribution is exactly two properties:
+
+1. **Scheduled, not prompted.** A check fires on a timer and tells the merchant something they
+   never thought to ask.
+2. **It verifies its own fix.** A finding is not marked fixed until a *later* cycle has
+   independently re-observed the sources and seen the spend stop.
+
+That is stage 6 in section 4, and it is why the demo ends the way it does. Everything else in
+this system is table stakes that someone else already ships.
 
 ---
 
@@ -105,10 +120,13 @@ after that.** Time is what makes the check possible. Never drop the events table
   severity.
 - The finding row is updated. Status becomes `open`.
 
-### Stage 4: DELIVER (API, mobile, web)
-- A push notification hits the merchant's phone.
-- The app shows the card: *"You're burning $284/week on ads for a sold-out product."*
+### Stage 4: DELIVER (API, web)
+- A Web Push notification hits the merchant's phone, with email as the fallback.
+- The card opens in the dashboard: *"You're burning $284/week on ads for a sold-out product."*
 - Tap it: the evidence and the explanation.
+
+**There is no native app.** Delivery is one Next.js dashboard, installable as a PWA, and Web
+Push (VAPID) reaches the phone without a separate mobile codebase. See section 5.
 
 ### Stage 5: ACT (action executor)
 - The merchant taps **Pause campaign**.
@@ -132,16 +150,21 @@ and proves it worked. That is our differentiator, and it is what we demo.
 
 | Service | What it does | Stack | Owner |
 |---|---|---|---|
-| **Connectors** | Pull from sources, normalize, write state + events | NestJS | Bassem |
-| **Check engine** | Run checks, emit findings. **The core.** | NestJS | Abdallah |
-| **AI service** | LLM explains, prices, ranks findings | Python | Khaled |
-| **API** | Serve findings, accept approvals | NestJS | Haggag |
-| **Web dashboard** | Review findings, savings ledger | Next.js | Essam |
-| **Mobile app** | Notifications + one-tap approval. **The demo.** | Flutter | Osama |
-| **Design** | Design system, the findings screens, the demo flow | Figma | Ahmed Osama |
-| **Infra** | Repo, Docker, CI/CD, deploys, logging | Docker/GCP | Faraj |
+| **Store connector** | Pull store data, normalize, write state + events | NestJS | Basem Essam |
+| **Ads connector** | Pull ad data against the same interface; observability | NestJS | Ahmed Essam |
+| **Check engine** | Run checks, emit findings. **The core.** | NestJS | Ahmed Abdallah |
+| **AI service** | LLM explains, prices, ranks findings | Python | Khaled Ghoniem |
+| **API** | Serve findings, accept approvals | NestJS | Mohamed Haggag |
+| **Web dashboard** | Findings, approval, savings ledger. **The demo.** | Next.js (PWA) | Ahmed Faraj |
+| **Design** | Design system, the findings screens, the demo flow | Figma | Omar Ali Abdelrady |
+| **Infra** | Repo, Docker, CI/CD, deploys, logging | Docker/GCP | Ahmed Faraj |
 
-**The connector interface is a contract.** Bassem defines it once. Every future source
+**The dashboard is the demo.** There is no separate mobile app and no Flutter. The Next.js
+client is installable as a PWA and receives Web Push, so the notification still arrives on a
+phone — one codebase instead of two. If you find a ticket or a doc that says Flutter or FCM,
+it predates this decision and it is wrong.
+
+**The connector interface is a contract.** Basem defines it once. Every future source
 (Shopify, Salla, WooCommerce) implements the same interface. Adding a source must never
 require changing the check engine.
 
@@ -227,7 +250,7 @@ core deliverable, not a chore.
 
 - **Sprints:** 2 weeks. Planning at the start, updates through the week.
 - **Board:** Jira, `storeadvisor.atlassian.net`. Every task is a ticket. No ticket, no work.
-- **Repo:** one monorepo. `/backend`, `/web`, `/mobile`, `/ai`, `/infra`.
+- **Repo:** one monorepo. `/backend`, `/web`, `/ai`, `/infra`.
 - **Branches:** `feature/<short-desc>-<ticket>`, branched off `main`.
 - **PRs:** required. No direct pushes to `main`. Branch protection enforces this.
 - **CI:** must be green. A red build does not merge. This is the gate, and nobody bypasses it.
@@ -279,7 +302,7 @@ rather than relying on a reviewer to notice.
 Say no to these, loudly, whenever they come up:
 
 - Real merchant data. Everything is synthetic or public.
-- Anything inside DataJar's codebase. We are standalone.
+- Anything inside Datajar's codebase. We are standalone.
 - Auto-applying risky actions without approval.
 - A second check before the first one works end to end.
 - Any feature that does not serve the demo in section 4.
@@ -295,14 +318,13 @@ Being honest about what we have not decided yet:
 
 - [ ] **Who writes the thesis / report?** Grad projects are graded on the document too, not
       just the code. **Nobody owns this yet.** It needs an owner from week one, not month ten.
-- [ ] **Supervisor not booked.** People from our year are already reserving. This is the only
-      thing with an external deadline.
-- [ ] **LLM provider and budget.** Which model? What does one finding cost to explain? Who
-      pays? (DataJar sponsors tools, so ask them.)
+- [x] **Supervisor booked.** Dr. Gehad Taher, confirmed 8 August 2026.
+- [ ] **LLM budget.** The model is Claude via the Anthropic SDK. Still open: what does one
+      finding cost to explain, and who pays? (Datajar sponsors tools, so ask them.)
 - [ ] **Secrets management.** Where do API keys live? Not in the repo. GitHub Secrets for CI,
       and something for local dev.
-- [ ] **Push notifications.** Mobile needs FCM (Firebase) set up. Nobody has done this yet and
-      it is on the demo path.
+- [ ] **Push notifications.** Web Push needs a VAPID key pair, a service worker, and a
+      subscription store. Nobody has done this yet and it is on the demo path.
 - [ ] **Environments.** Do we have a staging deploy, or only local + demo?
 - [ ] **How do we know the LLM is any good?** We need a small eval set: hand-written findings
       with expected explanations, so we can tell when we make it worse.
@@ -315,11 +337,17 @@ Being honest about what we have not decided yet:
 
 Everything above exists to make this happen:
 
-1. A phone buzzes: **"You're burning $284/week on ads for a sold-out product."**
+1. A phone buzzes — Web Push to the installed dashboard: **"You're burning $284/week on ads
+   for a sold-out product."**
 2. Open it: Blue Hoodie, out of stock Mar 4 at 09:12. Spring Sale campaign, still spending
    $40.50/day. 1,200 clicks to a dead page. Zero sales in six days.
 3. The AI explains the cause in plain language.
 4. Tap **Pause campaign.** It actually calls the ad API and pauses it.
-5. The card turns green: **"Fixed. Saved $284/week."**
+5. **On the next cycle** the check re-observes the sources, sees the spend has stopped, and
+   the card turns green: **"Fixed. Saved $284/week."**
+
+Step 5 is the one that matters and the one people skip. The card does not turn green because
+we paused something — it turns green because a later run independently confirmed the money
+stopped. That is the whole argument in section 2.
 
 If we build that, the project is done. Everything else is bonus.

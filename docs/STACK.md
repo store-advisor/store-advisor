@@ -19,28 +19,32 @@ re-litigate per service. If you want to change one, raise it, do not just use so
 | Concern | Choice | Notes |
 |---|---|---|
 | Framework | FastAPI | |
-| LLM SDK | **Anthropic SDK (Claude)** | Strong at structured explanation. Matches DataJar's stack. |
+| LLM SDK | **Anthropic SDK (Claude)** | Strong at structured explanation. Matches Datajar's stack. |
 | Tests | pytest | |
 
 The AI service explains findings. It never computes a number. See the golden rule in the
 handbook.
 
-## Mobile (Flutter)
+## Client (Next.js)
 
-| Concern | Choice | Notes |
-|---|---|---|
-| Framework | Flutter | |
-| State | **Riverpod** | Simpler than Bloc for a team. |
-| HTTP | dio | |
-| Push notifications | **Firebase Cloud Messaging** | The demo opens with a phone buzz. This is how. |
-
-## Web (Next.js)
+One client, not two. The dashboard *is* the mobile experience.
 
 | Concern | Choice | Notes |
 |---|---|---|
 | Framework | Next.js (App Router) | |
 | Data fetching | React Query | |
 | Styling | Tailwind | |
+| Install target | **PWA** | Installable to a phone home screen. No app store, no second codebase. |
+| Push notifications | **Web Push (VAPID)** | The demo opens with a phone buzz. This is how. Email is the fallback. |
+
+## Note on dropping Flutter
+
+An earlier version of this file specified Flutter, Riverpod and Firebase Cloud Messaging for a
+separate mobile app. That is no longer the plan. Reason: the demo needs a notification to reach
+a phone and a button to be tapped, and a PWA with Web Push does both. A native app would have
+been a second codebase, a second build pipeline, and an app-store dependency on the critical
+path — for a delivery surface the project is not graded on. Web Push is not supported on older
+iOS, which we accept: the demo runs on a device we control.
 
 ## Infra
 
@@ -48,7 +52,7 @@ handbook.
 |---|---|---|
 | Containers | Docker | |
 | CI | GitHub Actions | Runs on every PR. |
-| Deploy | **GCP Cloud Run** | Cheapest container path. Sponsored by DataJar. |
+| Deploy | **GCP Cloud Run** | Cheapest container path. Sponsored by Datajar. |
 | Local dev | `docker compose up` | Postgres + Redis. |
 
 ## Database
