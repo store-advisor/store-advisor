@@ -62,6 +62,19 @@ updates:
         patterns: ['next', 'react', 'react-dom', 'eslint-config-next']
       dev-tooling:
         dependency-type: development
+    ignore:
+      # Same wall as /backend: web carries its own ts-jest 29, which peers
+      # `typescript >=4.3 <7`, so TypeScript 7 fails `npm ci` with ERESOLVE
+      # and takes the whole web dev-tooling group down with it.
+      #
+      # The hold added for /backend did not cover this directory — each
+      # ecosystem block carries its own ignore list — so the web group stayed
+      # red after the backend one was fixed.
+      #
+      # Lift both together when a ts-jest release accepts TypeScript 7:
+      # `npm view ts-jest peerDependencies`.
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
 
   - package-ecosystem: pip
     directory: /ai
