@@ -229,13 +229,48 @@ core deliverable, not a chore.
 - **Board:** Jira, `storeadvisor.atlassian.net`. Every task is a ticket. No ticket, no work.
 - **Repo:** one monorepo. `/backend`, `/web`, `/mobile`, `/ai`, `/infra`.
 - **Branches:** `feature/<short-desc>-<ticket>`, branched off `main`.
-- **PRs:** required. No direct pushes to `main`. **One approval before merge.**
-- **CI:** must be green. A red build does not merge.
+- **PRs:** required. No direct pushes to `main`. Branch protection enforces this.
+- **CI:** must be green. A red build does not merge. This is the gate, and nobody bypasses it.
 - **Docs:** Notion. Every decision we make gets written down with the reason.
 
+### Merging
+
+**Green CI is what authorises a merge.** A PR whose required checks pass may be merged by its
+author without waiting for a human approval.
+
+This is a deliberate change from the "one approval before merge" rule we started with. The
+reason: approvals were becoming a queue rather than a quality gate. Work sat finished and
+unmerged for days waiting on someone to click a button, and a rule that mostly produces
+waiting is not buying the review it promises.
+
+What replaces it is a CI pipeline that actually checks something. `Backend` runs lint, build,
+the full test suite against a real Postgres, and a migration-drift check. `Image builds and
+boots` builds the production image and asserts the API serves traffic — that job exists
+because two defects reached `main` that no human reviewer had caught, and that no unit test
+could catch. Those checks are required and have no bypass actors.
+
+**Review has not stopped mattering, it has stopped blocking.** Still expected:
+
+- Request a reviewer on anything touching a contract others depend on — the schema, the API
+  response shape, the connector or check interfaces. Merge when it is green; take the feedback
+  in a follow-up if it arrives after.
+- CODEOWNERS still auto-requests the owner of every path you touch. Read what they say.
+- If you are merging into someone else's area, say so in the PR and tag them.
+
+**The honest trade-off:** we have chosen speed over a second pair of eyes, on a team where
+the second pair of eyes was often not available. That is a reasonable call for a project this
+size with CI this thorough. It would be a bad call on a system handling real money or real
+customer data, and if this project ever does either, this rule should be the first thing we
+change back.
+
 ### Definition of done
-A ticket is done when: the code is merged, CI is green, the acceptance criteria in the ticket
-are all true, and someone other than the author has seen it work.
+A ticket is done when: the code is merged, CI is green, and the acceptance criteria in the
+ticket are all true.
+
+Note what is no longer in that list: "someone other than the author has seen it work." The
+burden that requirement carried now falls on the tests. If a ticket's acceptance criteria are
+not checked by something automated, they are not really checked at all — so write the test
+rather than relying on a reviewer to notice.
 
 ---
 
