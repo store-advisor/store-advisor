@@ -18,14 +18,21 @@ export interface AdPlatform {
   readonly source: string;
 
   /**
-   * Pause a campaign by its external id.
+   * Pause a campaign by its external id, on behalf of one merchant.
+   *
+   * `merchantId` is not optional bookkeeping. An external id is only unique
+   * *within* a merchant — `campaigns` is keyed on
+   * (merchantId, source, externalId) — so resolving one without the tenant can
+   * land on another merchant's campaign. A real Meta or Google Ads client
+   * needs it for a second reason: it selects which merchant's stored
+   * credentials to authenticate with.
    *
    * Implementations must be safe to call twice: the executor guards against
    * duplicate work with an idempotency key, but a network retry inside the
    * platform client can still land the same call twice, and pausing an
    * already-paused campaign must not be an error.
    */
-  pauseCampaign(externalId: string): Promise<PauseResult>;
+  pauseCampaign(merchantId: string, externalId: string): Promise<PauseResult>;
 }
 
 export const AD_PLATFORMS = Symbol('AD_PLATFORMS');

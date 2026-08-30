@@ -24,9 +24,22 @@ export class DemoAdPlatform implements AdPlatform {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async pauseCampaign(externalId: string): Promise<PauseResult> {
-    const campaign = await this.prisma.campaign.findFirst({
-      where: { source: this.source, externalId },
+  async pauseCampaign(
+    merchantId: string,
+    externalId: string,
+  ): Promise<PauseResult> {
+    // Scoped by merchant, and via the composite unique key rather than a
+    // findFirst. External ids are only unique within a merchant, so looking
+    // one up on (source, externalId) alone can resolve to a different
+    // merchant's campaign and pause the wrong thing.
+    const campaign = await this.prisma.campaign.findUnique({
+      where: {
+        merchantId_source_externalId: {
+          merchantId,
+          source: this.source,
+          externalId,
+        },
+      },
     });
 
     if (!campaign) {
@@ -41,7 +54,11 @@ export class DemoAdPlatform implements AdPlatform {
     if (campaign.status === 'paused') {
       return {
         paused: true,
-        raw: { external_id: externalId, status: 'paused', already_paused: true },
+        raw: {
+          external_id: externalId,
+          status: 'paused',
+          already_paused: true,
+        },
       };
     }
 
