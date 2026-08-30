@@ -1,0 +1,6 @@
+anthropic>=1.0.0
+fastapi
+uvicorn[standard]
+pydantic
+pytest
+httpx2
