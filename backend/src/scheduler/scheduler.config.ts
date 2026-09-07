@@ -6,7 +6,7 @@
  * impossible to reason about after the fact.
  */
 
-/** Hourly, on the hour. HANDBOOK.md section 4, stage 1. */
+/** Hourly, on the hour. Proposal section 6.1, stage 1. */
 export const DEFAULT_CHECK_CRON = '0 * * * *';
 
 export interface SchedulerConfig {

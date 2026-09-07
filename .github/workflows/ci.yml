@@ -204,6 +204,35 @@ jobs:
           docker compose logs --no-color worker
           exit 1
 
+      # The dashboard is the only service anyone actually looks at, and it
+      # was the last one no CI job built. A Next.js production build fails in
+      # ways `next dev` does not — a standalone output missing its static
+      # assets renders a page with no styling and a 200, so each route is
+      # checked rather than just the root.
+      - name: Wait for the web app to serve every route
+        run: |
+          for i in $(seq 1 90); do
+            if curl -fsS -o /dev/null http://localhost:3001/; then
+              echo "Web app up after ${i}s."
+              break
+            fi
+            if [ "$i" = "90" ]; then
+              echo "::error::Web app did not answer within 90s."
+              docker compose logs --no-color web
+              exit 1
+            fi
+            sleep 1
+          done
+          for route in / /dashboard /tool /api-docs; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3001$route")
+            echo "GET $route -> $code"
+            [ "$code" = "200" ] || {
+              echo "::error::$route returned $code, expected 200"
+              docker compose logs --no-color web
+              exit 1
+            }
+          done
+
       # Always: when the smoke test fails, the container logs are the only
       # thing that explains why, and a failed step would otherwise skip this.
       - name: Dump logs on failure
