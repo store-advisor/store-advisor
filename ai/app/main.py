@@ -3,7 +3,7 @@ Store Advisor — AI service.
 
 Two surfaces, one process.
 
-**Explain** (`/api/explain`) is the service's job per HANDBOOK.md section 5:
+**Explain** (`/api/explain`) is the service's job per proposal section 6.5:
 take a finding's evidence and return a plain-language explanation, a
 confidence, and a severity. It does not find problems and it does not compute
 numbers — both belong to the check engine, and that separation is what lets a

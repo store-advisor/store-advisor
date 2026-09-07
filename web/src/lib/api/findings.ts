@@ -78,7 +78,7 @@ export interface ActionResult {
 }
 
 /**
- * Approves the fix for a finding: stage 5 in HANDBOOK.md section 4.
+ * Approves the fix for a finding: stage 5 of the cycle in proposal section 6.1.
  *
  * The idempotency key is generated here, once per approval attempt, and the
  * caller is expected to hold it steady across retries of the same attempt.

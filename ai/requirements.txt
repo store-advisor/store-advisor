@@ -10,14 +10,20 @@ python-multipart
 # Explain (/api/explain).
 anthropic>=1.2.0
 
-# Clean (/api/profile, /api/clean).
+# Clean (/api/profile, /api/clean), and the standalone scripts beside them.
 pandas
 numpy
 scipy
-# The engine pandas.read_excel() reaches for on .xlsx/.xls, which
-# app/api/cleaning.py accepts. Same story as python-multipart: no import,
-# still required.
+# The engine pandas.read_excel() reaches for on .xlsx/.xls. Same story as
+# python-multipart: no import, still required.
 openpyxl
+# frontend.py, the Streamlit UI over the same pipeline modules.
+streamlit
+# Not imported anywhere yet. Kept because they came with the cleaning work and
+# plotting is the obvious next step for the profiler; drop them if that is not
+# where it is going.
+matplotlib
+seaborn
 
 # Tests. fastapi.testclient is built on httpx; it arrives transitively via
 # anthropic, and naming it here keeps a change to that dependency from

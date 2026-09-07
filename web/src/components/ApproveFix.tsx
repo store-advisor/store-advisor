@@ -9,9 +9,10 @@ import type { Finding } from '@/lib/api/findings';
  * The button pauses the campaign. It deliberately does not colour the card
  * green, because approving is not proof: the finding turns green when a
  * later check run re-observes the sources and sees the spend has actually
- * stopped. Saying "Fixed" at the moment of the click would be the exact
- * claim HANDBOOK.md section 2 argues every other product makes and we do
- * not. The success message says what happened and what has not happened yet.
+ * stopped. Proposal O8 puts it as a requirement: a finding reaches `fixed`
+ * only on independently re-observed evidence. Saying "Fixed" at the moment of
+ * the click would be the exact claim proposal section 5 argues every other
+ * product makes and we do not.
  */
 export function ApproveFix({ finding }: { finding: Finding }) {
   const approve = useApproveFinding(finding.merchantId);
