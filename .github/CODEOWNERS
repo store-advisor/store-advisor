@@ -19,7 +19,14 @@
 /backend/src/findings/      @haggag66
 /backend/src/health/        @haggag66
 /backend/src/common/        @haggag66
-/backend/src/auth/          @haggag66
+
+# Security and platform. Authentication, tenant isolation and the audit trail
+# are Mostafa's, so a change to the guard is reviewed by the person who owns
+# the property it enforces rather than by whoever is around. See the security
+# track in docs/TODO.md.
+/backend/src/auth/          @0xCh0s3n
+/docker-compose.prod.yml    @0xCh0s3n
+/infra/                     @0xCh0s3n @Ahmad-Faraj
 
 # The scheduler that drives the check engine. Same owner as the engine once
 # the handle is confirmed; the tech lead wrote it ahead of the academic year
@@ -32,7 +39,6 @@
 /web/                       @Ahmad-Faraj
 
 # Infra, CI, deploys.
-/infra/                     @Ahmad-Faraj
 /.github/                   @Ahmad-Faraj
 /docker-compose.yml         @Ahmad-Faraj
 /backend/Dockerfile         @Ahmad-Faraj

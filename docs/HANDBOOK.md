@@ -164,6 +164,7 @@ and proves it worked. That is our differentiator, and it is what we demo.
 | **AI service** | LLM explains and ranks findings. **Never prices them.** Also profiles and cleans tabular data at `/api/profile` and `/api/clean` | Python | Khaled Ghoniem |
 | **API** | Serve findings, accept approvals | NestJS | Mohamed Haggag |
 | **Web dashboard** | Findings and approval at `/dashboard`, cleaning tool at `/tool`, API reference at `/api-docs`. **The demo.** | Next.js (PWA) | Ahmed Faraj |
+| **Security and platform** | Authentication, tenant isolation, the audit trail, connector credentials, deployment hardening | NestJS/Docker | Mostafa Elbashier |
 | **Design** | Design system, the findings screens, the demo flow | Figma | Omar Ali Abdelrady |
 | **Infra** | Repo, Docker, CI/CD, deploys, logging | Docker/GCP | Ahmed Faraj |
 

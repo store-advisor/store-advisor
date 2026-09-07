@@ -33,6 +33,16 @@ infra/      Docker, CI, deploy
 docs/       The handbook and decisions
 ```
 
+## New here?
+
+Read [docs/HANDBOOK.md](docs/HANDBOOK.md) first: it explains the six stages, who
+owns what, and the one rule that matters. Then run the thing below and press the
+button. Fifteen minutes and you will understand the project better than any
+description of it.
+
+If you are picking up a task, it is in [docs/TODO.md](docs/TODO.md) or on the
+Jira board. Handbook section 8: no ticket, no work.
+
 ## Running locally
 
 ```bash
@@ -78,6 +88,17 @@ card itself.
 
 `npm run check:run -- <merchantId>` does the same work once, in the
 foreground, which is the easier thing to attach a debugger to.
+
+### If something is wrong
+
+```bash
+docker compose ps                  # five healthy; worker has no port to check
+docker compose logs -f worker      # the scheduler talking
+docker compose down -v             # wipe the database and start over
+```
+
+`down -v` deletes the volume, so re-run the seed afterwards. That is the fix
+for almost anything odd in a development database.
 
 **Without an `ANTHROPIC_API_KEY` everything above still works.** The AI
 service boots, answers `/health`, and profiles and cleans data as normal;
