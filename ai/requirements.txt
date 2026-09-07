@@ -8,7 +8,7 @@ pydantic
 python-multipart
 
 # Explain (/api/explain).
-anthropic>=1.2.0
+anthropic>=1.3.0
 
 # Clean (/api/profile, /api/clean), and the standalone scripts beside them.
 pandas
