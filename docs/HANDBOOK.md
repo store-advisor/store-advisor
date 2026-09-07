@@ -125,15 +125,19 @@ after that.** Time is what makes the check possible. Never drop the events table
 - The finding row is updated. Status becomes `open`.
 
 ### Stage 4: DELIVER (API, web)
-- A Web Push notification hits the merchant's phone, with email as the fallback.
-- The card opens in the dashboard: *"You're burning $284/week on ads for a sold-out product."*
-- Tap it: the evidence and the explanation.
+- A Web Push notification hits the merchant's phone, with email as the fallback. **Not
+  built.** No VAPID keys, no service worker, no subscription store. This is the one part of
+  the demo that still has no code behind it.
+- The card opens in the dashboard at `/dashboard`. **Built**, against the real API.
+- Tap it: the evidence and the explanation. **Built.**
 
 **There is no native app.** Delivery is one Next.js dashboard, installable as a PWA, and Web
 Push (VAPID) reaches the phone without a separate mobile codebase. See section 5.
 
 ### Stage 5: ACT (action executor)
-- The merchant taps **Pause campaign**.
+- The merchant taps **Pause campaign**. **Built**, in `web/src/components/ApproveFix.tsx`.
+  The button does not turn the card green: approving is not proof, and stage 6 is what
+  proves it.
 - The API writes an `actions` row: `pause_campaign`, `status = pending`, with an
   **idempotency key**.
 - The executor calls the real ad API and pauses the campaign. The response is logged.
@@ -157,9 +161,9 @@ and proves it worked. That is our differentiator, and it is what we demo.
 | **Store connector** | Pull store data, normalize, write state + events | NestJS | Basem Essam |
 | **Ads connector** | Pull ad data against the same interface; observability | NestJS | Ahmed Essam |
 | **Check engine** | Run checks, emit findings. **The core.** | NestJS | Ahmed Abdallah |
-| **AI service** | LLM explains and ranks findings. **Never prices them.** | Python | Khaled Ghoniem |
+| **AI service** | LLM explains and ranks findings. **Never prices them.** Also profiles and cleans tabular data at `/api/profile` and `/api/clean` | Python | Khaled Ghoniem |
 | **API** | Serve findings, accept approvals | NestJS | Mohamed Haggag |
-| **Web dashboard** | Findings, approval, savings ledger. **The demo.** | Next.js (PWA) | Ahmed Faraj |
+| **Web dashboard** | Findings and approval at `/dashboard`, cleaning tool at `/tool`, API reference at `/api-docs`. **The demo.** | Next.js (PWA) | Ahmed Faraj |
 | **Design** | Design system, the findings screens, the demo flow | Figma | Omar Ali Abdelrady |
 | **Infra** | Repo, Docker, CI/CD, deploys, logging | Docker/GCP | Ahmed Faraj |
 

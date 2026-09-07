@@ -21,7 +21,11 @@
 /backend/src/common/        @haggag66
 /backend/src/auth/          @haggag66
 
-# The AI service: explanation, pricing, ranking.
+# The scheduler that drives the check engine. Same owner as the engine once
+# the handle is confirmed; the tech lead wrote it ahead of the academic year
+# because an empty core blocked everyone else.
+/backend/src/scheduler/     @Ahmad-Faraj
+# The AI service: explanation, pricing, ranking, and data cleaning.
 /ai/                        @Khaled-ghoneim
 
 # Web dashboard.

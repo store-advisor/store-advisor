@@ -9,6 +9,7 @@ import {
   humanizeKey,
 } from '@/lib/format';
 import { SeverityBadge } from './SeverityBadge';
+import { ApproveFix } from './ApproveFix';
 
 /**
  * Keys rendered as headline stats rather than in the evidence table, and how
@@ -152,6 +153,8 @@ export function FindingDetail({ finding }: { finding: Finding }) {
           </table>
         </div>
       </section>
+
+      <ApproveFix finding={finding} />
     </article>
   );
 }
