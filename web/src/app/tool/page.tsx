@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { ThinkingOrb } from "thinking-orbs";
 import { Database, UploadCloud, RefreshCw, AlertCircle } from "lucide-react";
 import { FileUploader } from "@/components/FileUploader";
@@ -77,12 +78,12 @@ export default function ToolPage() {
       {/* ── el7eta ele fo2 ─────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
-          <a href="/" className="flex items-center gap-2.5 group">
+          <Link href="/" className="flex items-center gap-2.5 group">
             <div className="p-1.5 bg-primary rounded-lg text-primary-foreground group-hover:bg-primary/90 transition-colors">
               <Database className="w-4 h-4" />
             </div>
             <span className="font-bold text-sm font-sans">Store Advisor</span>
-          </a>
+          </Link>
 
           {state.profile && (
             <button
