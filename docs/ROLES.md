@@ -41,6 +41,12 @@ joins across sources, emits findings with evidence and a dollar figure. Owns the
 interface: every future check is a module against it. This is the most interesting systems
 work in the project.
 
+The engine and the scheduler that drives it (`backend/src/checks/`, `backend/src/scheduler/`)
+were written by the tech lead ahead of the academic year, because an empty core blocked
+everyone else. They are Abdallah's to own from here: the next check is a module against the
+existing interface, and the queue is deliberately thin — one handler, two job names — so that
+taking it over is reading two files, not inheriting a framework.
+
 **AI service (Khaled).** Takes a finding's evidence and returns a plain-language explanation,
 a confidence, and a severity. Never invents a number. Owns prompt quality and the eval set
 that tells us when the LLM gets worse.

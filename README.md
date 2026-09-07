@@ -36,10 +36,31 @@ docs/       The handbook and decisions
 ## Running locally
 
 ```bash
-docker compose up
+cp .env.example .env          # ANTHROPIC_API_KEY may stay empty; see below
+docker compose up --build
 ```
 
-Postgres, the API, and a worker come up. See the handbook for details.
+Postgres, Redis, the API (`:3000`), the AI service (`:8000`) and the worker come up. The worker
+is the scheduler: it registers an hourly sweep and runs every check for every merchant without
+anyone asking it to.
+
+To watch that happen rather than wait an hour, seed the demo fixture and set a faster cadence:
+
+```bash
+cd backend && npm ci && npm run db:seed        # DATABASE_URL must point at localhost:5432
+CHECK_SCHEDULE_CRON='*/1 * * * *' docker compose up -d worker
+docker compose logs -f worker
+```
+
+Within a minute the log says `ad_spend_on_oos: 1 finding(s)`, and
+`GET /findings?merchant_id=demo_merchant` serves it. Nobody ran a check.
+
+`npm run check:run -- <merchantId>` does the same work once, in the foreground, which is the
+easier thing to attach a debugger to.
+
+**Without an `ANTHROPIC_API_KEY` everything above still works.** The AI service boots and
+answers `/health`, findings are detected, priced and served — they simply have no prose. An
+explanation is an enrichment, and nothing in the pipeline waits on it.
 
 ## The golden rule
 

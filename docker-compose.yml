@@ -82,19 +82,37 @@ services:
     # prose. Giving it a connection string would invite exactly the coupling
     # the golden rule exists to prevent.
 
-  # Uncomment as each service gets built.
+  # The half of the system that speaks first. Same image as the API, a
+  # different entry point: this process serves no HTTP, registers the hourly
+  # sweep, and consumes the per-merchant check jobs it fans out.
   #
-  # worker:
-  #   build: ./backend
-  #   command: npm run start:worker
-  #   environment:
-  #     DATABASE_URL: ${DATABASE_URL:-postgresql://storeadvisor:localdev@postgres:5432/storeadvisor}
-  #     REDIS_URL: redis://redis:6379
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     migrate:
-  #       condition: service_completed_successfully
+  # A separate service rather than a thread inside `api` on purpose. A check
+  # run competing with request handling for one event loop makes both slower
+  # and harder to reason about, and scaling the API for traffic would
+  # otherwise silently scale the number of check workers with it.
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: runtime
+    command: npm run start:worker:prod
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://storeadvisor:localdev@postgres:5432/storeadvisor}
+      REDIS_URL: redis://redis:6379
+      AI_SERVICE_URL: http://ai:8000
+      # Hourly, on the hour. Override to something like '*/1 * * * *' when
+      # demonstrating, so the schedule fires while someone is watching.
+      CHECK_SCHEDULE_CRON: ${CHECK_SCHEDULE_CRON:-0 * * * *}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      # Not gated on `ai`, for the same reason the API is not: an explanation
+      # is an enrichment. The worker detects and persists findings whether or
+      # not the AI service answers.
 
 volumes:
   pgdata:

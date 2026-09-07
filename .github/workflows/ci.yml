@@ -64,6 +64,10 @@ jobs:
         working-directory: backend
     env:
       DATABASE_URL: postgres://storeadvisor:localdev@localhost:5432/storeadvisor_test
+      # The scheduler suite talks to the Redis service above rather than
+      # mocking BullMQ. Its default is this same URL, but naming it here
+      # means a change to the service block is a change to one place.
+      REDIS_URL: redis://localhost:6379
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -178,6 +182,26 @@ jobs:
             sleep 1
           done
           echo "::error::AI service did not serve /health within 60s."
+          exit 1
+
+      # The worker has no port to curl, so its smoke test is its log: it must
+      # resolve its dependency graph, connect to Redis and register the
+      # schedule. Worth its own step because the worker is the only process
+      # with a second composition root — the API booting proves nothing about
+      # it, and the first two defects found while building it were both of
+      # this kind (a missing ConfigModule, and an optional peer dependency
+      # BullMQ no longer installs for you).
+      - name: Wait for the worker to register its schedule
+        run: |
+          for i in $(seq 1 60); do
+            if docker compose logs --no-color worker 2>/dev/null                  | grep -q 'Check sweep scheduled'; then
+              echo "Worker registered its schedule after ${i}s."
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::Worker did not register a schedule within 60s."
+          docker compose logs --no-color worker
           exit 1
 
       # Always: when the smoke test fails, the container logs are the only
