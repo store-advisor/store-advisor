@@ -40,6 +40,10 @@ cp .env.example .env          # ANTHROPIC_API_KEY may stay empty; see below
 docker compose up --build
 ```
 
+Docker is the only thing you need installed. See
+[infra/README.md](infra/README.md) for the deployment runbook and what has to
+change before this is exposed publicly.
+
 That is the whole setup. Six services come up and nothing else is required:
 
 | | Where | What |
@@ -56,10 +60,12 @@ The worker sweeps hourly. To watch it happen rather than wait, seed the demo
 fixture and run it on a one-minute cadence:
 
 ```bash
-cd backend && npm ci && npm run db:seed        # DATABASE_URL must point at localhost:5432
-cd .. && CHECK_SCHEDULE_CRON='*/1 * * * *' docker compose up -d worker
+docker compose --profile seed run --rm seed
+CHECK_SCHEDULE_CRON='*/1 * * * *' docker compose up -d worker
 docker compose logs -f worker
 ```
+
+No local Node needed: the seed runs in the image Docker has already built.
 
 Within a minute the log says `ad_spend_on_oos: 1 finding(s)`, and the card is
 on http://localhost:3001/dashboard. Nobody ran a check.
