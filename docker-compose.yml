@@ -1,6 +1,7 @@
 services:
   postgres:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-storeadvisor}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-localdev}
@@ -17,6 +18,7 @@ services:
 
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
     ports:
       - '6379:6379'
     healthcheck:
@@ -57,6 +59,24 @@ services:
       DATABASE_URL: ${DATABASE_URL:-postgresql://storeadvisor:localdev@postgres:5432/storeadvisor}
       REDIS_URL: redis://redis:6379
       AI_SERVICE_URL: http://ai:8000
+    restart: unless-stopped
+    # The only long-running service that had no healthcheck, so `compose ps`
+    # reported it Up and never healthy, and `web` could not wait on it.
+    # Node rather than curl: the alpine image has no curl, and adding one for
+    # a healthcheck adds a package to every deployment. Same reasoning as
+    # ai/Dockerfile.
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      start_period: 15s
+      retries: 6
     depends_on:
       postgres:
         condition: service_healthy
@@ -96,6 +116,7 @@ services:
       dockerfile: Dockerfile
       target: runtime
     command: npm run start:worker:prod
+    restart: unless-stopped
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql://storeadvisor:localdev@postgres:5432/storeadvisor}
       REDIS_URL: redis://redis:6379
@@ -130,12 +151,40 @@ services:
         NEXT_PUBLIC_AI_URL: ${NEXT_PUBLIC_AI_URL:-http://localhost:8000}
     ports:
       - '${WEB_PORT:-3001}:3001'
+    restart: unless-stopped
     depends_on:
       # Started after both, but gated on neither being healthy: the dashboard
       # renders its own error state when the API is down, which is a better
       # failure than a container that refuses to start.
       - api
       - ai
+
+
+  # Loads the demo fixture: one merchant, a product that went out of stock on
+  # 4 March, and a campaign that kept spending after it did.
+  #
+  # Behind a profile so it never runs by default — seeding on every `up` would
+  # overwrite a real database. Run it explicitly:
+  #
+  #     docker compose --profile seed run --rm seed
+  #
+  # It exists because the alternative instruction was "install Node, npm ci,
+  # npm run db:seed", which asks someone who only wanted to look at the
+  # project to install a toolchain first.
+  seed:
+    profiles: ['seed']
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: build
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://storeadvisor:localdev@postgres:5432/storeadvisor}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    command: npx prisma db seed
 
 
 volumes:
