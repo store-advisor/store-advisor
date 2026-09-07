@@ -114,5 +114,29 @@ services:
       # is an enrichment. The worker detects and persists findings whether or
       # not the AI service answers.
 
+  # The dashboard, the cleaning tool and the API docs. The front door: this is
+  # the only service a person actually looks at, and until now it was the only
+  # one `docker compose up` did not start.
+  #
+  # Published on 3001 because the API already holds 3000, and the browser talks
+  # to both: NEXT_PUBLIC_* values are compiled into the client bundle, so they
+  # are build arguments naming host addresses, not container names.
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3000}
+        NEXT_PUBLIC_AI_URL: ${NEXT_PUBLIC_AI_URL:-http://localhost:8000}
+    ports:
+      - '${WEB_PORT:-3001}:3001'
+    depends_on:
+      # Started after both, but gated on neither being healthy: the dashboard
+      # renders its own error state when the API is down, which is a better
+      # failure than a container that refuses to start.
+      - api
+      - ai
+
+
 volumes:
   pgdata:
