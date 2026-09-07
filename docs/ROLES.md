@@ -47,7 +47,7 @@ everyone else. They are Abdallah's to own from here: the next check is a module 
 existing interface, and the queue is deliberately thin — one handler, two job names — so that
 taking it over is reading two files, not inheriting a framework.
 
-**Security and platform (`@0xCh0s3n`).** Authentication and tenant isolation, the audit
+**Security and platform (Mostafa Elbashier).** Authentication and tenant isolation, the audit
 trail, credential handling for the connectors, deployment hardening and the supply chain. The
 eighth seat was held for a second analytics engineer; that track opens in month 7, and this
 work blocks a deployment now. See the security track in `docs/TODO.md` for the first three
