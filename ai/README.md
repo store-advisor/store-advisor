@@ -1,6 +1,12 @@
-# Store Advisor — Data Cleaning System
+# Store Advisor — AI service
 
-An intelligent, modular data cleaning system built for the **Store Advisor** graduation project. Upload any tabular dataset and clean it using **Basic**, **Advanced**, or future **Agent** pipelines — with full audit reports, validation, and a REST API.
+One FastAPI process, two surfaces.
+
+**Data cleaning.** An intelligent, modular data cleaning system built for the **Store Advisor** graduation project. Upload any tabular dataset and clean it using **Basic**, **Advanced**, or future **Agent** pipelines — with full audit reports, validation, and a REST API. That is the rest of this document.
+
+**Explain.** Takes a finding's evidence and returns a plain-language explanation, a confidence and a severity, and refuses to invent a number while doing it. See [Explain](#-explain) below.
+
+Proposal §6.3 layer 2 is where the cleaning work is headed: type coercion, deduplication and cross-source ID resolution over connector output, which the proposal calls "a core deliverable rather than housekeeping". Today the same operations run over an uploaded file.
 
 ---
 
@@ -45,7 +51,7 @@ pip install -r requirements.txt
 python -m pytest tests/ -v
 ```
 
-You should see **34 passed** ✅
+You should see **53 passed** ✅ (34 cleaning, 19 explain)
 
 ### Step 7: Start the Backend API
 
@@ -103,6 +109,8 @@ LLM-powered intelligent cleaning with planning, controlled tools, and explanatio
 | `POST` | `/api/profile` | Upload file → data profile JSON |
 | `POST` | `/api/clean?pipeline=basic` | Upload file → cleaning report + CSV |
 | `POST` | `/api/clean/download?pipeline=basic` | Upload file → download cleaned CSV |
+| `POST` | `/api/explain` | Finding evidence → explanation, confidence, severity |
+| `GET` | `/health` | Liveness. Answers even with no Anthropic key |
 
 **Example:**
 ```bash
@@ -117,8 +125,13 @@ curl -X POST "http://localhost:8000/api/clean?pipeline=advanced" -F "file=@your_
 ```
 ai/
 ├── app/
-│   ├── main.py                        # FastAPI entry point
+│   ├── main.py                        # FastAPI entry point, mounts both routers
 │   ├── api/cleaning.py                # REST endpoints
+│   ├── api/explain.py                 # POST /api/explain
+│   ├── explain/
+│   │   ├── grounding.py               # Refuses numbers the evidence does not prove
+│   │   ├── schemas.py
+│   │   └── service.py
 │   ├── schemas/cleaning.py            # Pydantic models
 │   ├── services/
 │   │   ├── profiler.py                # Data profiling engine
@@ -135,7 +148,7 @@ ai/
 │           ├── basic.py               # Fixed-rule pipeline
 │           ├── advanced.py            # Profile-driven pipeline
 │           └── agent.py               # Future LLM agent (stub)
-├── tests/                             # 34 pytest tests
+├── tests/                             # 53 pytest tests (34 cleaning, 19 explain)
 ├── frontend.py                        # Streamlit UI
 ├── basic_cleaning.py                  # CLI entry point
 └── requirements.txt
@@ -170,6 +183,62 @@ USER / WEB APPLICATION
         v
  CLEANED DATA + REPORT
 ```
+
+---
+
+## 🧠 Explain
+
+`POST /api/explain` takes a finding's evidence and returns a plain-language
+explanation, a confidence between 0 and 1, and a severity.
+
+It does not find problems and it does not compute numbers. Both belong to the
+check engine in `backend/`, and that separation is what lets a merchant trust
+the result.
+
+```json
+{
+  "check_id": "ad_spend_on_oos",
+  "estimated_cost": 283.5,
+  "evidence": {
+    "product_title": "Blue Hoodie",
+    "campaign_name": "Spring Sale",
+    "average_daily_spend": 40.5,
+    "spend_since_stockout": 243,
+    "clicks_since_stockout": 1200,
+    "conversions_since_stockout": 0
+  }
+}
+```
+
+```json
+{
+  "explanation": "...",
+  "confidence": 0.95,
+  "severity": "high",
+  "grounded": true,
+  "ungrounded_numbers": []
+}
+```
+
+### The grounding check
+
+`grounded: false` means the model wrote a number that does not appear anywhere
+in the evidence. **Do not show an ungrounded explanation to a merchant.**
+
+The rule is that the LLM never invents a number. A rule nobody checks is a
+wish, so `app/explain/grounding.py` checks it: every figure in the explanation
+has to trace back to a value the check proved, allowing for the roundings a
+correct explanation would legitimately make (`$283.50` written as `$284`, a
+confidence of `0.95` written as `95%`).
+
+This is what answers "how do you know the AI is not hallucinating the
+numbers?" with something stronger than a prompt instruction. Proposal §5 names
+it as one of the two properties that survive comparison with existing systems.
+
+**Without `ANTHROPIC_API_KEY` this endpoint answers 503 and everything else
+still works.** The service boots, serves `/health`, profiles and cleans as
+normal. Findings are still detected, priced and served; they simply have no
+prose.
 
 ---
 
