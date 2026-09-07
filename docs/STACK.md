@@ -68,6 +68,17 @@ building an MVP, RabbitMQ is a separate broker to run, learn, and deploy. We alr
 locally, and BullMQ rides on it with a fraction of the setup. Revisit RabbitMQ only if we
 outgrow BullMQ, which will not happen this year.
 
+**Use `bullmq` directly, not `@nestjs/bullmq`.** The Nest wrapper is ESM-only from v12, and
+this repository's Jest setup is CommonJS — the same wall that has NestJS 12 held back in
+`dependabot.yml`. Taking it would have meant either a fifth version hold or an ESM migration
+inside a ticket about a timer. What it saves is two providers, which `src/scheduler/scheduler
+.module.ts` writes out by hand. Revisit when the test setup moves to ESM.
+
+`bullmq` v6 also made `ioredis` an *optional* peer dependency: it is not installed for you, and
+the failure is a runtime error rather than a build error. It is a direct dependency in
+`backend/package.json` for that reason. Do not remove it as unused — nothing imports it by
+name.
+
 ## Why library-level decisions are written down
 
 "Use NestJS" is not enough. If one person picks Prisma and another picks TypeORM, they collide
