@@ -1,0 +1,12 @@
+pandas
+numpy
+matplotlib
+seaborn
+scipy
+fastapi
+uvicorn[standard]
+python-multipart
+pydantic
+pytest
+openpyxl
+streamlit

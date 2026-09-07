@@ -12,3 +12,10 @@ venv/
 .idea/
 .dart_tool/
 build/
+
+# Runtime user-uploaded files (should not be committed)
+backend/uploads/
+
+# Large binary/data files
+*.pdf
+ai/spotify.csv

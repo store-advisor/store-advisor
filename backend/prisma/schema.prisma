@@ -98,6 +98,7 @@ model Product {
   @@index([merchantId, inventoryQty])
   @@map("products")
 }
+
 // ----------------------------------------------------------------------------
 // CAMPAIGN
 //
@@ -112,7 +113,7 @@ model Campaign {
   externalId  String   @map("external_id")
   name        String
   status      String
-  dailyBudget Decimal?  @map("daily_budget") @db.Decimal(10, 2)
+  dailyBudget Decimal? @map("daily_budget") @db.Decimal(10, 2)
   budgetType  String   @default("daily") @map("budget_type") // "daily" | "lifetime"
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -302,4 +303,35 @@ model Action {
   @@index([merchantId, status])
   @@index([findingId])
   @@map("actions")
+}
+
+// ----------------------------------------------------------------------------
+// FILE_UPLOAD & FILE_SELECTION
+//
+// Auditing metadata for the Store Advisor AI cleaning pipeline.
+// ----------------------------------------------------------------------------
+
+model FileUpload {
+  id         String   @id @default(cuid())
+  sessionId  String   @map("session_id")
+  filename   String
+  sizeBytes  Int      @map("size_bytes")
+  storageRef String   @map("storage_ref")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  selections FileSelection[]
+
+  @@map("file_uploads")
+}
+
+model FileSelection {
+  id           String   @id @default(cuid())
+  uploadId     String   @map("upload_id")
+  sessionId    String   @map("session_id")
+  pipelineUsed String   @map("pipeline_used")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  upload FileUpload @relation(fields: [uploadId], references: [id])
+
+  @@map("file_selections")
 }
