@@ -542,14 +542,27 @@ truth against which any of those could be computed.
 | 5 | Khaled Ghoniem | The AI service: grounded explanation, pricing, ranking, evaluation set |
 | 6 | Mohamed Haggag | The public API and the finding and action contract |
 | 7 | Omar Ali Abdelrady | Design system, findings and dashboard screens, the demonstration flow |
-| 8 | To be assigned | Second engineer on the analytics and ML track, alongside Khaled Ghoniem |
+| 8 | `@0xCh0s3n` (name to confirm) | Security and platform: authentication and tenant isolation, credential handling for the connectors, deployment hardening, supply chain |
 
-The analytics and machine learning track opens in months 7 and 8, so the eighth seat blocks
-nothing before April 2027. Khaled Ghoniem leads that track and already owns the ranking model
-and the evaluation set. If the seat is still open in October, the work moves to people who need
-it anyway: the KPI engine to Ahmed Faraj, whose dashboard consumes it; the synthetic data
-generator to Ahmed Abdallah, whose check engine cannot be tested without it; and forecasting to
-Khaled.
+The eighth seat was reserved for a second engineer on the analytics and machine learning
+track. That track opens in months 7 and 8, so the seat blocked nothing before April 2027, while
+the security work described below blocks a deployment now. The seat is therefore assigned to
+security and platform, and the analytics work follows the split this section already named:
+the KPI engine to Ahmed Faraj, whose dashboard consumes it; the synthetic data generator to
+Ahmed Abdallah, whose check engine cannot be tested without it; and forecasting and the ranking
+model to Khaled Ghoniem, who leads that track and owns the evaluation set.
+
+**Why security is a seat rather than a task.** Section 14 offers this project as a reference
+architecture for safe agentic action under financial authority, and section 13 states that
+every write to an external platform requires explicit human approval as a property of the
+architecture rather than a setting. Those are the claims a reader is entitled to test. Today
+the API accepts any bearer token and reads the merchant from a query parameter, so approval is
+enforced against nobody in particular; the actions table records what was done and when, but
+not who authorised it; and section 13's commitment that prompts and model responses are
+persisted has no column behind it. Each of those is a gap between a written claim and the
+system, and closing them is a track of work rather than a chore attached to someone already
+carrying a component. The same seat owns credential handling for the connectors, which is the
+point where the promise of least-privilege scoping in section 13 stops being theoretical.
 
 Everything waits on the canonical schema, so it lands first. The store connector defines the
 connector interface that the advertising connector is then built against. The check engine
