@@ -22,7 +22,7 @@ will hurt us if nobody picks them up. Each needs an owner.
       **Owner: Khaled.**
 - [ ] **Secrets management.** API keys do not go in the repo. GitHub Secrets for CI, something
       for local dev (a `.env` that is gitignored), and managed secret storage once there is a
-      deployment. Folded into SEC-3 below. **Owner: `@0xCh0s3n`.**
+      deployment. Folded into SEC-3 below. **Owner: Mostafa.**
 - [ ] **Environments.** `infra/deploy.md` covers a shared box behind Cloudflare Access, which
       is what we need before the defence; Cloud Run is the production target and waits on SEC-1.
       **Owner: Faraj.**
@@ -44,7 +44,7 @@ and something the code does, so the acceptance criterion is always "the claim is
       **Done when** a request with an unverified token is rejected, the merchant comes from the
       verified token rather than the query string, and a test proves one merchant cannot read or
       act on another's findings. The tenant-isolation tests in `actions.integration.spec.ts` are
-      the pattern to extend. **Owner: `@0xCh0s3n`.**
+      the pattern to extend. **Owner: Mostafa.**
 
 - [ ] **SEC-2. Make the audit trail answer "who".**
       The `actions` table records the request, the response, the status and the time, which is
@@ -54,7 +54,7 @@ and something the code does, so the acceptance criterion is always "the claim is
       column for it.
       **Done when** an action row names its approver, an explanation row carries the prompt and
       the raw model response, and section 13 can be read against the schema without a caveat.
-      Small, and it is the thing an examiner can check in one query. **Owner: `@0xCh0s3n`.**
+      Small, and it is the thing an examiner can check in one query. **Owner: Mostafa.**
 
 - [ ] **SEC-3. Secrets, and hardening the deployment.**
       `ANTHROPIC_API_KEY` lives in a `.env`. Postgres defaults to `storeadvisor:localdev`. The
@@ -62,8 +62,7 @@ and something the code does, so the acceptance criterion is always "the claim is
       Dockerfile builds different images on different days. `infra/README.md` lists these as P0
       items 2 to 4 and P1 items 5 to 8, with the standard each comes from.
       **Done when** the deployed environment takes its secrets from managed storage rather than
-      a file, base images are pinned by digest, and CI scans the built image. **Owner:
-      `@0xCh0s3n`.**
+      a file, base images are pinned by digest, and CI scans the built image. **Owner: Mostafa.**
 
 **Why these three and in this order.** Section 14 offers the project as a reference
 architecture for safe agentic action under financial authority. SEC-1 makes the authority real,

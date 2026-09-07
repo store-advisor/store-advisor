@@ -542,7 +542,7 @@ truth against which any of those could be computed.
 | 5 | Khaled Ghoniem | The AI service: grounded explanation, pricing, ranking, evaluation set |
 | 6 | Mohamed Haggag | The public API and the finding and action contract |
 | 7 | Omar Ali Abdelrady | Design system, findings and dashboard screens, the demonstration flow |
-| 8 | `@0xCh0s3n` (name to confirm) | Security and platform: authentication and tenant isolation, credential handling for the connectors, deployment hardening, supply chain |
+| 8 | Mostafa Elbashier | Security and platform: authentication and tenant isolation, credential handling for the connectors, deployment hardening, supply chain |
 
 The eighth seat was reserved for a second engineer on the analytics and machine learning
 track. That track opens in months 7 and 8, so the seat blocked nothing before April 2027, while
