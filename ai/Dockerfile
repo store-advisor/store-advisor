@@ -9,6 +9,12 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
+# The standalone entry points beside the API: basic_cleaning.py is a CLI over
+# the same pipeline runner, frontend.py is a Streamlit UI over the same
+# operations. Both are documented in README.md, and requirements.txt installs
+# what they need, so leaving them out would ship an image carrying streamlit
+# with nothing to run.
+COPY 1.py 2.py basic_cleaning.py frontend.py ./
 
 # Non-root, matching backend/Dockerfile. Standard practice for anything
 # beyond a local throwaway.
