@@ -5,13 +5,18 @@ import { motion, useReducedMotion } from "framer-motion";
 import { Database, ArrowRight, Wand2, Sliders, Bot, Clock, CheckCircle2, Zap } from "lucide-react";
 
 
+// framer-motion v13 types `ease` as a 4-tuple when it is a cubic bezier. An
+// inline `[0.16, 1, 0.3, 1]` widens to number[] and fails the build, so the
+// curve is named once, typed once, and shared by both variants below.
+const EASE_OUT_EXPO: [number, number, number, number] = [0.16, 1, 0.3, 1];
+
 function useSafeMotion() {
   const shouldReduce = useReducedMotion();
   return {
     fadeUp: {
       initial: shouldReduce ? {} : { opacity: 0, y: 24 },
       animate: { opacity: 1, y: 0 },
-      transition: { duration: 0.55, ease: [0.16, 1, 0.3, 1] },
+      transition: { duration: 0.55, ease: EASE_OUT_EXPO },
     },
     stagger: (i: number) => ({
       initial: shouldReduce ? {} : { opacity: 0, y: 20 },
@@ -20,7 +25,7 @@ function useSafeMotion() {
       transition: {
         duration: 0.5,
         delay: i * 0.1,
-        ease: [0.16, 1, 0.3, 1],
+        ease: EASE_OUT_EXPO,
       },
     }),
   };
@@ -85,13 +90,21 @@ export default function LandingPage() {
             </div>
             <span className="font-bold text-sm">Store Advisor</span>
           </div>
-          <Link
-            href="/tool"
-            className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors"
-          >
-            Open Tool
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/dashboard"
+              className="text-sm font-semibold px-4 py-2 rounded-xl text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Dashboard
+            </Link>
+            <Link
+              href="/tool"
+              className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors"
+            >
+              Open Tool
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
         </div>
       </nav>
 
@@ -145,6 +158,12 @@ export default function LandingPage() {
               className="flex items-center gap-2 px-7 py-3.5 border border-border text-muted-foreground font-semibold rounded-2xl text-base hover:border-primary/40 hover:text-foreground transition-all duration-200"
             >
               API Docs
+            </Link>
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-2 px-7 py-3.5 border border-border text-muted-foreground font-semibold rounded-2xl text-base hover:border-primary/40 hover:text-foreground transition-all duration-200"
+            >
+              Findings Dashboard
             </Link>
           </motion.div>
         </div>

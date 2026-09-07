@@ -9,7 +9,7 @@ import { FileUploader } from '@/components/FileUploader';
 
 // Mock thinking-orbs since it's a canvas/WebGL component
 jest.mock('thinking-orbs', () => ({
-  ThinkingOrb: ({ 'aria-hidden': ariaHidden }: { 'aria-hidden'?: string }) => (
+  ThinkingOrb: ({ 'aria-hidden': ariaHidden }: React.AriaAttributes) => (
     <div data-testid="thinking-orb" aria-hidden={ariaHidden} />
   ),
 }));
