@@ -20,7 +20,9 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "check:run": "nest build && node dist/checks/run-checks.cli.js",
-    "db:seed": "prisma db seed"
+    "db:seed": "prisma db seed",
+    "start:worker": "nest build && node dist/scheduler/worker.main.js",
+    "start:worker:prod": "node dist/scheduler/worker.main.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -30,6 +32,8 @@
     "@nestjs/swagger": "^11.4.6",
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
+    "bullmq": "^6.3.2",
+    "ioredis": "^6.0.0",
     "pg": "^8.23.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
@@ -46,7 +50,6 @@
     "@types/node": "^26.4.0",
     "@types/pg": "^8.21.0",
     "@types/supertest": "^7.0.0",
-    "dotenv": "^17.4.2",
     "eslint": "^10.9.1",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",

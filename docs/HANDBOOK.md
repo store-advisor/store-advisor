@@ -91,9 +91,12 @@ not our architecture.
 This is the whole system. Learn these six stages.
 
 ### Stage 1: INGEST (connectors)
-- A scheduler fires (hourly).
+- A scheduler fires (hourly). **Built** — `backend/src/scheduler/`, run as its own process
+  with `npm run start:worker`, or the `worker` service in `docker-compose.yml`. It is a BullMQ
+  repeatable job that fans out one check job per merchant; the cadence is `CHECK_SCHEDULE_CRON`.
 - Connectors pull from each source: store products, inventory, orders; ad campaigns, daily
-  spend.
+  spend. **Not built.** Until they are, the schedule fires against whatever `prisma/seed.ts`
+  wrote, so stage 1 is half done: the timer is real, the data is a fixture.
 - Data is written **twice**:
   - **Current state** into normalized tables (`products`, `campaigns`, `ad_spend`, `orders`)
   - **What changed, and when** into the `events` table (append-only)
@@ -104,7 +107,8 @@ after that.** Time is what makes the check possible. Never drop the events table
 "simplify".
 
 ### Stage 2: DETECT (check engine)
-- A check job is queued per merchant.
+- A check job is queued per merchant. The sweep enqueues one job keyed on the merchant, so a
+  merchant whose run is still going is not queued again by the next tick.
 - The check engine loads state + events and runs every registered check.
 - Our first check, `ad_spend_on_oos`:
   - Find products where `inventory_qty = 0`
