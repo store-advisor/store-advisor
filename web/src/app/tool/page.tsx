@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ThinkingOrb } from "thinking-orbs";
-import { Database, RefreshCw, AlertCircle } from "lucide-react";
+import { Database, UploadCloud, RefreshCw, AlertCircle } from "lucide-react";
 import { FileUploader } from "@/components/FileUploader";
 import { DatasetProfile } from "@/components/DatasetProfile";
 import { BasicPipelineTab } from "@/components/tabs/BasicPipelineTab";

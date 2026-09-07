@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { ThinkingOrb } from "thinking-orbs";
 import { Code2, Play, AlertCircle, TriangleAlert, Info } from "lucide-react";
 import { useRunCustomCode } from "@/lib/hooks/useAiApi";

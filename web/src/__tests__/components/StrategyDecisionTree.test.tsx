@@ -3,7 +3,7 @@
  */
 
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { StrategyDecisionTree } from '@/components/advanced/StrategyDecisionTree';
 import type { DatasetProfile } from '@/lib/api/ai';
