@@ -1,6 +1,26 @@
-anthropic>=1.2.0
+# Web framework, shared by both surfaces.
 fastapi
 uvicorn[standard]
 pydantic
+# Multipart form parsing. Nothing imports it by name; FastAPI needs it the
+# moment an endpoint takes an UploadFile, which /api/profile and /api/clean
+# both do. Removing it as "unused" breaks file upload at runtime, not build.
+python-multipart
+
+# Explain (/api/explain).
+anthropic>=1.2.0
+
+# Clean (/api/profile, /api/clean).
+pandas
+numpy
+scipy
+# The engine pandas.read_excel() reaches for on .xlsx/.xls, which
+# app/api/cleaning.py accepts. Same story as python-multipart: no import,
+# still required.
+openpyxl
+
+# Tests. fastapi.testclient is built on httpx; it arrives transitively via
+# anthropic, and naming it here keeps a change to that dependency from
+# quietly breaking the suite.
 pytest
-httpx2
+httpx
