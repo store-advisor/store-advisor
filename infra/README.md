@@ -20,6 +20,12 @@ somebody's preference.
 
 ---
 
+## Deploying a shared environment
+
+[deploy.md](deploy.md) is the step-by-step: a 4 GB box, no published ports, and
+Cloudflare Access in front, which is what makes a shared URL safe to stand up
+before the authentication work below has landed.
+
 ## Running it today
 
 Two commands, and no local toolchain beyond Docker:
