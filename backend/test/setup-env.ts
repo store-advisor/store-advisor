@@ -15,3 +15,24 @@ import { config } from 'dotenv';
 import { join } from 'node:path';
 
 config({ path: join(__dirname, '..', '.env') });
+config({ path: join(__dirname, '..', '..', '.env') });
+
+process.env.DATABASE_URL =
+  process.env.DATABASE_URL ??
+  'postgresql://storeadvisor:localdev@localhost:5432/storeadvisor';
+process.env.REDIS_URL = process.env.REDIS_URL ?? 'redis://localhost:6379';
+
+// When running tests on the host machine, root .env points to @postgres:5432 and redis:6379
+// (Docker Compose container names). Map them to localhost if not inside a container.
+if (process.env.DATABASE_URL.includes('@postgres:')) {
+  process.env.DATABASE_URL = process.env.DATABASE_URL.replace(
+    '@postgres:',
+    '@localhost:',
+  );
+}
+if (process.env.REDIS_URL.includes('://redis:')) {
+  process.env.REDIS_URL = process.env.REDIS_URL.replace(
+    '://redis:',
+    '://localhost:',
+  );
+}

@@ -9,7 +9,7 @@ and the rules we all follow.
 
 **Store Advisor finds the money a merchant's store is leaking, and stops it.**
 
-It connects to a merchant's store and ad accounts, runs checks that join data *across* those
+It connects to a merchant's store and ad accounts, runs checks that join data _across_ those
 sources, finds problems no single dashboard can see, prices them in dollars, explains them in
 plain language, and (with the merchant's approval) fixes them.
 
@@ -17,7 +17,7 @@ Think **AWS Trusted Advisor, but for e-commerce.**
 
 ### The one thing to understand
 
-Most analytics tools look at one source at a time. The expensive problems live *between*
+Most analytics tools look at one source at a time. The expensive problems live _between_
 sources. Example, and this is our first check:
 
 > The store says "Blue Hoodie" is out of stock.
@@ -41,14 +41,14 @@ answers questions in chat, and **its agent will pause an underperforming campaig
 to.** Joining sources and executing a fix distinguish nothing on their own. Do not build the
 pitch on them.
 
-| Capability | Native analytics | Attribution suites | Cloud advisors | Datajar | Store Advisor |
-|---|---|---|---|---|---|
-| Joins independent sources | No | Yes | n/a | Yes | Yes |
-| Explains the cause in plain language | No | No | No | Yes | Yes |
-| Prices the problem in currency | No | Partial | Yes | No | Yes |
-| Executes the fix on approval | No | No | Partial | Yes | Yes |
-| **Speaks without being asked** | No | No | Yes | No | **Yes** |
-| **Verifies its own fix worked** | No | No | No | No | **Yes** |
+| Capability                           | Native analytics | Attribution suites | Cloud advisors | Datajar | Store Advisor |
+| ------------------------------------ | ---------------- | ------------------ | -------------- | ------- | ------------- |
+| Joins independent sources            | No               | Yes                | n/a            | Yes     | Yes           |
+| Explains the cause in plain language | No               | No                 | No             | Yes     | Yes           |
+| Prices the problem in currency       | No               | Partial            | Yes            | No      | Yes           |
+| Executes the fix on approval         | No               | No                 | Partial        | Yes     | Yes           |
+| **Speaks without being asked**       | No               | No                 | Yes            | No      | **Yes**       |
+| **Verifies its own fix worked**      | No               | No                 | No             | No      | **Yes**       |
 
 **Two rows survive.** Every system above acts only when addressed, except the cloud advisors
 (AWS Trusted Advisor, Google Cloud Recommender), which speak first but never check their own
@@ -58,7 +58,7 @@ So the contribution is exactly two properties:
 
 1. **Scheduled, not prompted.** A check fires on a timer and tells the merchant something they
    never thought to ask.
-2. **It verifies its own fix.** A finding is not marked fixed until a *later* cycle has
+2. **It verifies its own fix.** A finding is not marked fixed until a _later_ cycle has
    independently re-observed the sources and seen the spend stop.
 
 That is stage 6 in section 4, and it is why the demo ends the way it does. Everything else in
@@ -77,7 +77,7 @@ This is the most important rule in the project. Everyone must understand it.
 - The **LLM** receives the evidence the check already proved, and writes the human explanation,
   a confidence, and a severity ranking.
 
-If someone asks *"how do you know the AI isn't hallucinating the numbers?"* the answer is:
+If someone asks _"how do you know the AI isn't hallucinating the numbers?"_ the answer is:
 **it never touches the numbers.** Every figure traces back to a database row. That is exactly
 why we can safely let it pause a real ad campaign.
 
@@ -91,22 +91,29 @@ not our architecture.
 This is the whole system. Learn these six stages.
 
 ### Stage 1: INGEST (connectors)
+
 - A scheduler fires (hourly). **Built** — `backend/src/scheduler/`, run as its own process
   with `npm run start:worker`, or the `worker` service in `docker-compose.yml`. It is a BullMQ
   repeatable job that fans out one check job per merchant; the cadence is `CHECK_SCHEDULE_CRON`.
-- Connectors pull from each source: store products, inventory, orders; ad campaigns, daily
-  spend. **Not built.** Until they are, the schedule fires against whatever `prisma/seed.ts`
-  wrote, so stage 1 is half done: the timer is real, the data is a fixture.
+- Connectors pull from each source:
+  - **Store connector (Shopify):** **Built** — `backend/src/connectors/shopify/` implements the `StoreConnector` interface (`fetchProducts`, `fetchOrders`), normalizes store catalog and orders to the canonical schema (Layer 2), and detects stock-out state transitions into the append-only `events` table.
+  - **Store ingestion endpoint:** **Built** — `POST /connectors/:source/sync` endpoint in `backend/src/connectors/` guarded by `AuthStubGuard`, running idempotent sync and returning summary metrics.
+  - **Validation & Testing:** Fully tested with unit test suites (normalizer, connector, service, controller) and an end-to-end integration test (`shopify.ingest-to-detect.integration.spec.ts`) validating the full Stage 1 INGEST to Stage 2 DETECT pipeline.
+  - **Limitations & Remaining work:**
+    - Live credentials: Requires platform credentials (`SHOPIFY_SHOP`, `SHOPIFY_ACCESS_TOKEN`) from Shopify Partners; operates in realistic offline fixture mode when unconfigured.
+    - Pagination: Ingestion is currently capped at 250 records per request (`limit=250`); link-header cursor pagination is remaining work for large catalogs.
+  - **Ads connector (Meta):** **Not built.** Ahmed Essam owns this. Until built, ad spend and campaign state rely on seed data.
 - Data is written **twice**:
   - **Current state** into normalized tables (`products`, `campaigns`, `ad_spend`, `orders`)
   - **What changed, and when** into the `events` table (append-only)
 
-**Why the events table matters:** without it you only know "stock is 0 *now*" and "the campaign
-is on *now*". With it you know **stock hit zero at 09:12 on Mar 4, and the spending continued
+**Why the events table matters:** without it you only know "stock is 0 _now_" and "the campaign
+is on _now_". With it you know **stock hit zero at 09:12 on Mar 4, and the spending continued
 after that.** Time is what makes the check possible. Never drop the events table to
 "simplify".
 
 ### Stage 2: DETECT (check engine)
+
 - A check job is queued per merchant. The sweep enqueues one job keyed on the merchant, so a
   merchant whose run is still going is not queued again by the next tick.
 - The check engine loads state + events and runs every registered check.
@@ -119,12 +126,14 @@ after that.** Time is what makes the check possible. Never drop the events table
 - A finding is a row in `findings`, containing the evidence JSON and `estimated_cost`.
 
 ### Stage 3: EXPLAIN (AI service)
+
 - The finding is queued to the Python AI service.
 - The LLM is handed the evidence and returns: a plain-language cause, a confidence, a
   severity.
 - The finding row is updated. Status becomes `open`.
 
 ### Stage 4: DELIVER (API, web)
+
 - A Web Push notification hits the merchant's phone, with email as the fallback. **Not
   built.** No VAPID keys, no service worker, no subscription store. This is the one part of
   the demo that still has no code behind it.
@@ -135,6 +144,7 @@ after that.** Time is what makes the check possible. Never drop the events table
 Push (VAPID) reaches the phone without a separate mobile codebase. See section 5.
 
 ### Stage 5: ACT (action executor)
+
 - The merchant taps **Pause campaign**. **Built**, in `web/src/components/ApproveFix.tsx`.
   The button does not turn the card green: approving is not proof, and stage 6 is what
   proves it.
@@ -146,6 +156,7 @@ Push (VAPID) reaches the phone without a separate mobile codebase. See section 5
 never pause twice or double-charge an action. The idempotency key guarantees one effect.
 
 ### Stage 6: VERIFY (this is what makes it an agent)
+
 - The **next** check run sees the campaign is now paused and the spend has stopped.
 - The finding moves to **"Fixed. Saved $284/week"** and is recorded in the savings ledger.
 
@@ -156,16 +167,16 @@ and proves it worked. That is our differentiator, and it is what we demo.
 
 ## 5. Services and who owns them
 
-| Service | What it does | Stack | Owner |
-|---|---|---|---|
-| **Store connector** | Pull store data, normalize, write state + events | NestJS | Basem Essam |
-| **Ads connector** | Pull ad data against the same interface; observability | NestJS | Ahmed Essam |
-| **Check engine** | Run checks, emit findings. **The core.** | NestJS | Ahmed Abdallah |
-| **AI service** | LLM explains and ranks findings. **Never prices them.** Also profiles and cleans tabular data at `/api/profile` and `/api/clean` | Python | Khaled Ghoniem |
-| **API** | Serve findings, accept approvals | NestJS | Mohamed Haggag |
-| **Web dashboard** | Findings and approval at `/dashboard`, cleaning tool at `/tool`, API reference at `/api-docs`. **The demo.** | Next.js (PWA) | Ahmed Faraj |
-| **Design** | Design system, the findings screens, the demo flow | Figma | Omar Ali Abdelrady |
-| **Infra** | Repo, Docker, CI/CD, deploys, logging | Docker/GCP | Ahmed Faraj |
+| Service             | What it does                                                                                                                     | Stack         | Owner              |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------- | ------------------ |
+| **Store connector** | Pull store data, normalize, write state + events                                                                                 | NestJS        | Basem Essam        |
+| **Ads connector**   | Pull ad data against the same interface; observability                                                                           | NestJS        | Ahmed Essam        |
+| **Check engine**    | Run checks, emit findings. **The core.**                                                                                         | NestJS        | Ahmed Abdallah     |
+| **AI service**      | LLM explains and ranks findings. **Never prices them.** Also profiles and cleans tabular data at `/api/profile` and `/api/clean` | Python        | Khaled Ghoniem     |
+| **API**             | Serve findings, accept approvals                                                                                                 | NestJS        | Mohamed Haggag     |
+| **Web dashboard**   | Findings and approval at `/dashboard`, cleaning tool at `/tool`, API reference at `/api-docs`. **The demo.**                     | Next.js (PWA) | Ahmed Faraj        |
+| **Design**          | Design system, the findings screens, the demo flow                                                                               | Figma         | Omar Ali Abdelrady |
+| **Infra**           | Repo, Docker, CI/CD, deploys, logging                                                                                            | Docker/GCP    | Ahmed Faraj        |
 
 **The dashboard is the demo.** There is no separate mobile app and no Flutter. The Next.js
 client is installable as a PWA and receives Web Push, so the notification still arrives on a
@@ -247,7 +258,7 @@ core deliverable, not a chore.
 2. **Time alignment.** Ad spend is daily. Stock changes are per-second. Timezones differ.
    Getting the join right is subtle, and the whole check depends on it.
 3. **Cost attribution.** "This cost you $284" needs a model we can defend in the viva. Our v1:
-   *all ad spend on a product after its stock-out timestamp.* Simple and defensible. Write down
+   _all ad spend on a product after its stock-out timestamp._ Simple and defensible. Write down
    why.
 4. **Idempotent writes.** A retry must never pause a campaign twice.
 5. **LLM trust.** See the golden rule. Log every prompt and every response.
@@ -295,6 +306,7 @@ customer data, and if this project ever does either, this rule should be the fir
 change back.
 
 ### Definition of done
+
 A ticket is done when: the code is merged, CI is green, and the acceptance criteria in the
 ticket are all true.
 

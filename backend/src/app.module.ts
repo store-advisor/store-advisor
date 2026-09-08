@@ -8,6 +8,7 @@ import { FindingsModule } from './findings/findings.module';
 import { ChecksModule } from './checks/checks.module';
 import { ActionsModule } from './actions/actions.module';
 import { ExplainModule } from './explain/explain.module';
+import { ConnectorsModule } from './connectors/connectors.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { ExplainModule } from './explain/explain.module';
     ChecksModule,
     ActionsModule,
     ExplainModule,
+    ConnectorsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
